@@ -397,12 +397,13 @@ impl Client {
 
     self.identify_user()?;
 
-    if self.auth_level == AuthLevel::UserIdentified || self.auth_level == AuthLevel::UserRemembered
-    {
+    if self.auth_level == AuthLevel::UserIdentified {
       self.two_factor_auth()?;
     }
 
-    if self.auth_level == AuthLevel::DeviceAuthorized {
+    if self.auth_level == AuthLevel::DeviceAuthorized
+      || self.auth_level == AuthLevel::UserRemembered
+    {
       self.auth_password()?;
     }
 
