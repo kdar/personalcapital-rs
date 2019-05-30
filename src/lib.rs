@@ -33,10 +33,10 @@ pub trait TwoFactor {
 
 pub trait Store {
   type Error;
-  fn save_csrf(&self, csrf: String) -> Result<(), Self::Error>;
-  fn save_cookies(&self, cookies: Vec<u8>) -> Result<(), Self::Error>;
-  fn load_csrf(&self) -> Result<Option<String>, Self::Error>;
-  fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error>;
+  fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
+  fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
+  fn load_csrf(&mut self) -> Result<Option<String>, Self::Error>;
+  fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 #[derive(Clone, Default)]
@@ -44,16 +44,16 @@ struct DefaultStore;
 
 impl Store for DefaultStore {
   type Error = Box<Error>;
-  fn save_csrf(&self, _csrf: String) -> Result<(), Self::Error> {
+  fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
   }
-  fn save_cookies(&self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
+  fn save_cookies(&mut self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
     Ok(())
   }
-  fn load_csrf(&self) -> Result<Option<String>, Self::Error> {
+  fn load_csrf(&mut self) -> Result<Option<String>, Self::Error> {
     Ok(None)
   }
-  fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error> {
+  fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
     Ok(None)
   }
 }
