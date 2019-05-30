@@ -1,6 +1,6 @@
 use serde_json::value::RawValue;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
   #[serde(rename = "spData")]
   pub sp_data: Box<RawValue>,
@@ -8,7 +8,7 @@ pub struct Response {
   pub sp_header: SpHeader,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpHeader {
   #[serde(rename = "SP_HEADER_VERSION")]
   pub sp_header_version: i64,
@@ -36,14 +36,14 @@ pub struct SpHeader {
   pub errors: Option<Vec<Error>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Error {
   pub code: i64,
   pub details: Option<ErrorDetails>,
   pub message: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ErrorDetails {
   #[serde(rename = "fieldName")]
   pub field_name: String,
@@ -51,7 +51,7 @@ pub struct ErrorDetails {
   pub original_value: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AccountsSummary {
   #[serde(rename = "hasCredit")]
   pub has_credit: bool,
@@ -65,14 +65,14 @@ pub struct AccountsSummary {
   pub has_on_us: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AuthenticatePassword {
   #[serde(rename = "allCredentials")]
   pub all_credentials: Vec<Credential>,
   pub credentials: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Credential {
   pub name: String,
   pub status: Status,
@@ -173,7 +173,7 @@ pub struct Transaction {
   pub original_category_id: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct IdentifyUser {
   #[serde(rename = "userStatus")]
   pub user_status: Status,
@@ -182,7 +182,7 @@ pub struct IdentifyUser {
   pub all_credentials: Vec<Credential>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum Status {
   #[serde(rename = "ACTIVE")]
   Active,
@@ -200,6 +200,8 @@ pub enum Currency {
 pub enum InvestmentType {
   Dividend,
   Transfer,
+  Buy,
+  Sell,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -216,15 +218,21 @@ pub enum TransactionStatus {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum TransactionType {
-  Conversion,
+  Buy,
+  #[serde(rename = "Cash In")]
+  CashIn,
   Credit,
   Debit,
   #[serde(rename = "Dividend Received")]
   DividendReceived,
+  #[serde(rename = "MMF Rein")]
+  MmfRein,
   #[serde(rename = "MMF Sweep")]
   MmfSweep,
   #[serde(rename = "Reinvest Dividend")]
   ReinvestDividend,
+  Sell,
+  Conversion,
   #[serde(rename = "Shares Out")]
   SharesOut,
 }
