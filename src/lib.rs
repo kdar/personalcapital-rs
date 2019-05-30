@@ -92,12 +92,18 @@ fn get_json_error(json: &Value) -> Option<Box<Error>> {
 
 pub struct ClientBuilder {
   two_factor: Box<TwoFactor>,
+  username: Option<String>,
+  password: Option<String>,
+  device_name: Option<String>,
 }
 
 impl ClientBuilder {
   pub fn new() -> Self {
     ClientBuilder {
       two_factor: Box::new(DefaultTwoFactor),
+      username: None,
+      password: None,
+      device_name: None,
     }
   }
 
@@ -106,7 +112,34 @@ impl ClientBuilder {
     self
   }
 
-  fn build(self) -> Result<Client, Box<Error>> {
+  pub fn username<V: Into<String>>(&mut self, value: V) -> &mut Self {
+    self.username = Some(value.into());
+    self
+  }
+
+  pub fn password<V: Into<String>>(&mut self, value: V) -> &mut Self {
+    self.password = Some(value.into());
+    self
+  }
+
+  pub fn device_name<V: Into<String>>(&mut self, value: V) -> &mut Self {
+    self.device_name = Some(value.into());
+    self
+  }
+
+  pub fn build(&mut self) -> Result<Client, Box<Error>> {
+    if self.username.is_none() {
+      return Err("username must be set".into());
+    }
+
+    if self.password.is_none() {
+      return Err("password must be set".into());
+    }
+
+    if self.device_name.is_none() {
+      return Err("device_name must be set".into());
+    }
+
     let mut h = HeaderMap::new();
     h.insert(header::ACCEPT, "*/*".parse()?);
     h.insert(header::USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36".parse()?);
@@ -117,20 +150,24 @@ impl ClientBuilder {
 
     let client = reqwest::Client::builder().default_headers(h).build()?;
 
+    // Is there a better way to do this?
+    let mut tf: Box<TwoFactor> = Box::new(DefaultTwoFactor);
+    ::std::mem::swap(&mut self.two_factor, &mut tf);
+
     Ok(Client {
       client,
       csrf: String::new(),
       auth_level: AuthLevel::Null,
       cookie_store: CookieStore::default(),
-      two_factor: self.two_factor,
-      username: env::var("PC_USERNAME").expect("PC_USERNAME not set"),
-      password: env::var("PC_PASSWORD").expect("PC_PASSWORD is not set"),
-      device_name: env::var("PC_DEVICE_NAME").expect("PC_DEVICE_NAME is not set"),
+      two_factor: tf,
+      username: self.username.take().unwrap(),
+      password: self.password.take().unwrap(),
+      device_name: self.device_name.take().unwrap(),
     })
   }
 }
 
-struct Client {
+pub struct Client {
   client: reqwest::Client,
   csrf: String,
   auth_level: AuthLevel,
