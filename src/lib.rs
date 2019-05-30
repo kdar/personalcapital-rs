@@ -1,5 +1,9 @@
 #[macro_use]
 extern crate log;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 
 use std::collections::HashMap;
 use std::error::Error;
@@ -11,8 +15,9 @@ use reqwest::{
   self,
   header::{self, HeaderMap},
 };
-use serde_json::Value;
 use url::percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
+
+mod types;
 
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
@@ -72,34 +77,6 @@ impl TwoFactor for DefaultTwoFactor {
       .expect("did not enter a correct string");
 
     code.trim().to_string()
-  }
-}
-
-#[derive(Debug, PartialEq)]
-enum AuthLevel {
-  Null, // initial state
-  Csrf, // fake auth level signifying we got the csrf token
-
-  // Personal Capital auth levels:
-  UserRemembered,
-  UserIdentified,
-  DeviceAuthorized,
-  SessionAuthenticated,
-  None,
-}
-
-impl From<&str> for AuthLevel {
-  fn from(s: &str) -> Self {
-    // These are all the auth levels actually returned by
-    // Personal Capital.
-    match s {
-      "USER_REMEMBERED" => AuthLevel::UserRemembered,
-      "USER_IDENTIFIED" => AuthLevel::UserIdentified,
-      "DEVICE_AUTHORIZED" => AuthLevel::DeviceAuthorized,
-      "SESSION_AUTHENTICATED" => AuthLevel::SessionAuthenticated,
-      "NONE" => AuthLevel::None,
-      _ => panic!("unknown auth level: {:?}", s),
-    }
   }
 }
 
@@ -185,10 +162,10 @@ impl ClientBuilder {
     Ok(Client {
       client,
       csrf: String::new(),
-      auth_level: AuthLevel::Null,
-      cookie_store: cookie_store,
+      auth_level: types::AuthLevel::Null,
+      cookie_store,
       two_factor: tf,
-      store: store,
+      store,
       username: self.username.take().unwrap(),
       password: self.password.take().unwrap(),
       device_name: self.device_name.take().unwrap(),
@@ -199,7 +176,7 @@ impl ClientBuilder {
 pub struct Client {
   client: reqwest::Client,
   csrf: String,
-  auth_level: AuthLevel,
+  auth_level: types::AuthLevel,
   cookie_store: CookieStore,
   two_factor: Box<TwoFactor>,
   store: Box<Store<Error = Box<Error>>>,
@@ -259,29 +236,31 @@ impl Client {
     Ok(res)
   }
 
-  fn request_json(&mut self, req: reqwest::Request) -> Result<Value, Box<Error>> {
+  fn request_json<T>(&mut self, req: reqwest::Request) -> Result<T, Box<Error>>
+  where
+    T: serde::de::DeserializeOwned,
+  {
     let mut res = self.request(req)?;
-    let json: Value = res.json()?;
+    let json: types::Response = res.json()?;
 
-    if let Some(csrf) = json["spHeader"]["csrf"].as_str() {
-      self.csrf = csrf.into();
+    if let Some(csrf) = json.sp_header.csrf {
+      self.csrf = csrf.clone();
     }
 
-    if let Some(auth_level) = json["spHeader"]["authLevel"].as_str() {
-      self.auth_level = auth_level.into();
-    }
+    self.auth_level = json.sp_header.auth_level;
 
-    if let Some(errors) = json["spHeader"]["errors"].as_array() {
+    if let Some(errors) = json.sp_header.errors {
       let mut msg = String::new();
-      msg.push_str(&errors[0]["message"].to_string());
-      if let Some(details) = errors[0].get("details") {
+      msg.push_str(&errors[0].message);
+      if let Some(details) = &errors[0].details {
         msg.push_str(" ");
-        msg.push_str(&details.to_string());
+        msg.push_str(&serde_json::to_string(&details)?);
       }
       return Err(msg.into());
     }
 
-    Ok(json)
+    let payload = json.sp_data.get();
+    serde_json::from_str(payload).map_err(|e| format!("{} -> {}", e, payload).into())
   }
 
   fn get_csrf(&mut self) -> Result<(), Box<Error>> {
@@ -297,7 +276,7 @@ impl Client {
     if let Some(captures) = CSRF_RE.captures(&body) {
       if let Some(csrf) = captures.get(1) {
         self.csrf = csrf.as_str().into();
-        self.auth_level = AuthLevel::Csrf;
+        self.auth_level = types::AuthLevel::Csrf;
         self.store.save_csrf(self.csrf.clone())?;
         return Ok(());
       }
@@ -320,9 +299,9 @@ impl Client {
     params.insert("referrerId", String::new());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    let json: types::IdentifyUser = self.request_json(req)?;
 
-    if json["spData"]["userStatus"] == "INACTIVE" {
+    if json.user_status == types::Status::Inactive {
       return Err(format!("the username \"{}\" is inactive", self.username).into());
     }
 
@@ -330,7 +309,7 @@ impl Client {
   }
 
   fn two_factor_auth(&mut self) -> Result<(), Box<Error>> {
-    if self.auth_level == AuthLevel::UserRemembered {
+    if self.auth_level == types::AuthLevel::UserRemembered {
       return Ok(());
     }
 
@@ -385,31 +364,31 @@ impl Client {
     params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    self.request_json(req)?;
+    self.request_json::<types::AuthenticatePassword>(req)?;
 
     Ok(())
   }
 
   pub fn auth(&mut self) -> Result<(), Box<Error>> {
-    if self.auth_level == AuthLevel::Null || self.csrf.is_empty() {
+    if self.auth_level == types::AuthLevel::Null || self.csrf.is_empty() {
       self.get_csrf()?;
     }
 
     self.identify_user()?;
 
-    if self.auth_level == AuthLevel::UserIdentified {
+    if self.auth_level == types::AuthLevel::UserIdentified {
       self.two_factor_auth()?;
     }
 
-    if self.auth_level == AuthLevel::DeviceAuthorized
-      || self.auth_level == AuthLevel::UserRemembered
+    if self.auth_level == types::AuthLevel::DeviceAuthorized
+      || self.auth_level == types::AuthLevel::UserRemembered
     {
       self.auth_password()?;
     }
 
     match self.auth_level {
-      AuthLevel::SessionAuthenticated => Ok(()),
-      AuthLevel::None => Err("could not auth".into()),
+      types::AuthLevel::SessionAuthenticated => Ok(()),
+      types::AuthLevel::None => Err("could not auth".into()),
       _ => Err(
         format!(
           "unknown auth level state at end of auth(): {:?}",
@@ -420,7 +399,7 @@ impl Client {
     }
   }
 
-  pub fn user_transactions(&mut self) -> Result<Value, Box<Error>> {
+  pub fn user_transactions(&mut self) -> Result<types::UserTransactions, Box<Error>> {
     let url = format!("{}{}", BASE_URL, USER_TRANSACTIONS);
 
     let mut params = HashMap::new();
