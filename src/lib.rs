@@ -61,34 +61,19 @@ enum AuthLevel {
   None,
 }
 
-impl From<Option<&str>> for AuthLevel {
-  fn from(s: Option<&str>) -> Self {
+impl From<&str> for AuthLevel {
+  fn from(s: &str) -> Self {
     // These are all the auth levels actually returned by
     // Personal Capital.
     match s {
-      Some("USER_REMEMBERED") => AuthLevel::UserRemembered,
-      Some("USER_IDENTIFIED") => AuthLevel::UserIdentified,
-      Some("DEVICE_AUTHORIZED") => AuthLevel::DeviceAuthorized,
-      Some("SESSION_AUTHENTICATED") => AuthLevel::SessionAuthenticated,
-      Some("NONE") => AuthLevel::None,
+      "USER_REMEMBERED" => AuthLevel::UserRemembered,
+      "USER_IDENTIFIED" => AuthLevel::UserIdentified,
+      "DEVICE_AUTHORIZED" => AuthLevel::DeviceAuthorized,
+      "SESSION_AUTHENTICATED" => AuthLevel::SessionAuthenticated,
+      "NONE" => AuthLevel::None,
       _ => panic!("unknown auth level: {:?}", s),
     }
   }
-}
-
-fn get_personalcapital_json(res: &mut reqwest::Response) -> Result<Value, Box<Error>> {
-  let json: Value = res.json()?;
-  if let Some(errors) = json["spHeader"]["errors"].as_array() {
-    let mut msg = String::new();
-    msg.push_str(&errors[0]["message"].to_string());
-    if let Some(details) = errors[0].get("details") {
-      msg.push_str(" ");
-      msg.push_str(&details.to_string());
-    }
-    return Err(msg.into());
-  }
-
-  Ok(json)
 }
 
 pub struct ClientBuilder {
@@ -226,6 +211,31 @@ impl Client {
     Ok(res)
   }
 
+  fn request_json(&mut self, req: reqwest::Request) -> Result<Value, Box<Error>> {
+    let mut res = self.request(req)?;
+    let json: Value = res.json()?;
+
+    if let Some(csrf) = json["spHeader"]["csrf"].as_str() {
+      self.csrf = csrf.into();
+    }
+
+    if let Some(auth_level) = json["spHeader"]["authLevel"].as_str() {
+      self.auth_level = auth_level.into();
+    }
+
+    if let Some(errors) = json["spHeader"]["errors"].as_array() {
+      let mut msg = String::new();
+      msg.push_str(&errors[0]["message"].to_string());
+      if let Some(details) = errors[0].get("details") {
+        msg.push_str(" ");
+        msg.push_str(&details.to_string());
+      }
+      return Err(msg.into());
+    }
+
+    Ok(json)
+  }
+
   fn get_csrf(&mut self) -> Result<(), Box<Error>> {
     let req = self.client.get(BASE_URL).build()?;
     let mut res = self.request(req)?;
@@ -256,11 +266,7 @@ impl Client {
     params.insert("referrerId", String::new());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let mut res = self.request(req)?;
-    let json = get_personalcapital_json(&mut res)?;
-
-    self.csrf = json["spHeader"]["csrf"].as_str().unwrap_or("").into();
-    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+    let json = self.request_json(req)?;
 
     if json["spData"]["userStatus"] == "INACTIVE" {
       return Err(format!("the username \"{}\" is inactive", self.username).into());
@@ -296,10 +302,7 @@ impl Client {
     params.insert("challengeType", auth_type.into());
 
     let req = self.client.post(&challenge_url).form(&params).build()?;
-    let mut res = self.request(req)?;
-    let json = get_personalcapital_json(&mut res)?;
-
-    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+    let json = self.request_json(req)?;
 
     let code = self.two_factor.get_code();
 
@@ -311,10 +314,7 @@ impl Client {
     params.insert("code", code.into());
 
     let req = self.client.post(&auth_url).form(&params).build()?;
-    let mut res = self.request(req)?;
-    let json = get_personalcapital_json(&mut res)?;
-
-    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+    self.request_json(req)?;
 
     return Ok(());
   }
@@ -331,10 +331,7 @@ impl Client {
     params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let mut res = self.request(req)?;
-    let json = get_personalcapital_json(&mut res)?;
-
-    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+    let json = self.request_json(req)?;
 
     Ok(())
   }
@@ -379,10 +376,7 @@ impl Client {
     params.insert("lastServerChangeId", "-1".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let mut res = self.request(req)?;
-    let json = get_personalcapital_json(&mut res)?;
-
-    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+    let json = self.request_json(req)?;
 
     Ok(json)
   }
