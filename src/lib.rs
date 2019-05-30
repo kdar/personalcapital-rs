@@ -302,7 +302,7 @@ impl Client {
     params.insert("challengeType", auth_type.into());
 
     let req = self.client.post(&challenge_url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    self.request_json(req)?;
 
     let code = self.two_factor.get_code();
 
@@ -331,7 +331,7 @@ impl Client {
     params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    self.request_json(req)?;
 
     Ok(())
   }
