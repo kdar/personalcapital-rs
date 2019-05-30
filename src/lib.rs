@@ -31,6 +31,33 @@ pub trait TwoFactor {
   fn get_code(&self) -> String;
 }
 
+pub trait Store {
+  type Error;
+  fn save_csrf(&self, csrf: String) -> Result<(), Self::Error>;
+  fn save_cookies(&self, cookies: Vec<u8>) -> Result<(), Self::Error>;
+  fn load_csrf(&self) -> Result<Option<String>, Self::Error>;
+  fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error>;
+}
+
+#[derive(Clone, Default)]
+struct DefaultStore;
+
+impl Store for DefaultStore {
+  type Error = Box<Error>;
+  fn save_csrf(&self, _csrf: String) -> Result<(), Self::Error> {
+    Ok(())
+  }
+  fn save_cookies(&self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
+    Ok(())
+  }
+  fn load_csrf(&self) -> Result<Option<String>, Self::Error> {
+    Ok(None)
+  }
+  fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error> {
+    Ok(None)
+  }
+}
+
 #[derive(Clone, Default)]
 struct DefaultTwoFactor;
 
@@ -78,6 +105,7 @@ impl From<&str> for AuthLevel {
 
 pub struct ClientBuilder {
   two_factor: Box<TwoFactor>,
+  store: Box<Store<Error = Box<Error>>>,
   username: Option<String>,
   password: Option<String>,
   device_name: Option<String>,
@@ -87,6 +115,7 @@ impl ClientBuilder {
   pub fn new() -> Self {
     ClientBuilder {
       two_factor: Box::new(DefaultTwoFactor),
+      store: Box::new(DefaultStore),
       username: None,
       password: None,
       device_name: None,
@@ -95,6 +124,11 @@ impl ClientBuilder {
 
   pub fn two_factor(&mut self, value: Box<TwoFactor>) -> &mut Self {
     self.two_factor = value;
+    self
+  }
+
+  pub fn store(&mut self, value: Box<Store<Error = Box<Error>>>) -> &mut Self {
+    self.store = value;
     self
   }
 
@@ -139,13 +173,22 @@ impl ClientBuilder {
     // Is there a better way to do this?
     let mut tf: Box<TwoFactor> = Box::new(DefaultTwoFactor);
     ::std::mem::swap(&mut self.two_factor, &mut tf);
+    let mut store: Box<Store<Error = Box<Error>>> = Box::new(DefaultStore);
+    ::std::mem::swap(&mut self.store, &mut store);
+
+    let cookie_store = if let Some(cookies) = store.load_cookies()? {
+      cookie_store::CookieStore::load_json(&cookies[..])?
+    } else {
+      CookieStore::default()
+    };
 
     Ok(Client {
       client,
       csrf: String::new(),
       auth_level: AuthLevel::Null,
-      cookie_store: CookieStore::default(),
+      cookie_store: cookie_store,
       two_factor: tf,
+      store: store,
       username: self.username.take().unwrap(),
       password: self.password.take().unwrap(),
       device_name: self.device_name.take().unwrap(),
@@ -159,6 +202,7 @@ pub struct Client {
   auth_level: AuthLevel,
   cookie_store: CookieStore,
   two_factor: Box<TwoFactor>,
+  store: Box<Store<Error = Box<Error>>>,
   username: String,
   password: String,
   device_name: String,
@@ -175,6 +219,10 @@ impl Client {
         self.cookie_store.parse(s, &url)?;
       }
     }
+
+    let mut buf = vec![];
+    self.cookie_store.save_json(&mut buf)?;
+    self.store.save_cookies(buf)?;
 
     Ok(())
   }
@@ -237,6 +285,11 @@ impl Client {
   }
 
   fn get_csrf(&mut self) -> Result<(), Box<Error>> {
+    if let Some(csrf) = self.store.load_csrf()? {
+      self.csrf = csrf;
+      return Ok(());
+    }
+
     let req = self.client.get(BASE_URL).build()?;
     let mut res = self.request(req)?;
     let body = res.text()?;
@@ -245,6 +298,7 @@ impl Client {
       if let Some(csrf) = captures.get(1) {
         self.csrf = csrf.as_str().into();
         self.auth_level = AuthLevel::Csrf;
+        self.store.save_csrf(self.csrf.clone())?;
         return Ok(());
       }
     }
