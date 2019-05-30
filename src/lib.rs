@@ -2,10 +2,9 @@
 extern crate log;
 
 use std::collections::HashMap;
-use std::env;
 use std::error::Error;
 
-use cookie_store::{Cookie, CookieStore};
+use cookie_store::CookieStore;
 use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{
@@ -22,6 +21,7 @@ const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
 const CHALLENGE_EMAIL: &str = "/api/credential/challengeEmail";
 const AUTHENTICATE_EMAIL: &str = "/api/credential/authenticateEmailByCode";
 const AUTHENTICATE_PASSWORD: &str = "/api/credential/authenticatePassword";
+const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -76,7 +76,8 @@ impl From<Option<&str>> for AuthLevel {
   }
 }
 
-fn get_json_error(json: &Value) -> Option<Box<Error>> {
+fn get_personalcapital_json(res: &mut reqwest::Response) -> Result<Value, Box<Error>> {
+  let json: Value = res.json()?;
   if let Some(errors) = json["spHeader"]["errors"].as_array() {
     let mut msg = String::new();
     msg.push_str(&errors[0]["message"].to_string());
@@ -84,10 +85,10 @@ fn get_json_error(json: &Value) -> Option<Box<Error>> {
       msg.push_str(" ");
       msg.push_str(&details.to_string());
     }
-    return Some(msg.into());
+    return Err(msg.into());
   }
 
-  None
+  Ok(json)
 }
 
 pub struct ClientBuilder {
@@ -256,11 +257,7 @@ impl Client {
 
     let req = self.client.post(&url).form(&params).build()?;
     let mut res = self.request(req)?;
-    let json: Value = res.json()?;
-
-    if let Some(err) = get_json_error(&json) {
-      return Err(err);
-    }
+    let json = get_personalcapital_json(&mut res)?;
 
     self.csrf = json["spHeader"]["csrf"].as_str().unwrap_or("").into();
     self.auth_level = json["spHeader"]["authLevel"].as_str().into();
@@ -300,7 +297,7 @@ impl Client {
 
     let req = self.client.post(&challenge_url).form(&params).build()?;
     let mut res = self.request(req)?;
-    let json: Value = res.json()?;
+    let json = get_personalcapital_json(&mut res)?;
 
     self.auth_level = json["spHeader"]["authLevel"].as_str().into();
 
@@ -315,11 +312,7 @@ impl Client {
 
     let req = self.client.post(&auth_url).form(&params).build()?;
     let mut res = self.request(req)?;
-    let json: Value = res.json()?;
-
-    if let Some(err) = get_json_error(&json) {
-      return Err(err);
-    }
+    let json = get_personalcapital_json(&mut res)?;
 
     self.auth_level = json["spHeader"]["authLevel"].as_str().into();
 
@@ -339,11 +332,7 @@ impl Client {
 
     let req = self.client.post(&url).form(&params).build()?;
     let mut res = self.request(req)?;
-    let json: Value = res.json()?;
-
-    if let Some(err) = get_json_error(&json) {
-      return Err(err);
-    }
+    let json = get_personalcapital_json(&mut res)?;
 
     self.auth_level = json["spHeader"]["authLevel"].as_str().into();
 
@@ -377,6 +366,25 @@ impl Client {
         .into(),
       ),
     }
+  }
+
+  pub fn user_transactions(&mut self) -> Result<Value, Box<Error>> {
+    let url = format!("{}{}", BASE_URL, USER_TRANSACTIONS);
+
+    let mut params = HashMap::new();
+    params.insert("csrf", self.csrf.clone());
+    params.insert("apiClient", "WEB".into());
+    params.insert("startDate", "2019-05-01".into());
+    params.insert("endDate", "2019-05-28".into());
+    params.insert("lastServerChangeId", "-1".into());
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let mut res = self.request(req)?;
+    let json = get_personalcapital_json(&mut res)?;
+
+    self.auth_level = json["spHeader"]["authLevel"].as_str().into();
+
+    Ok(json)
   }
 }
 
