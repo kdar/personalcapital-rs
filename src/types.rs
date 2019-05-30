@@ -1,8 +1,12 @@
 use serde_json::value::RawValue;
 
+fn empty_rawvalue() -> Box<RawValue> {
+  serde_json::value::RawValue::from_string("null".into()).unwrap()
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
-  #[serde(rename = "spData")]
+  #[serde(rename = "spData", default = "empty_rawvalue")]
   pub sp_data: Box<RawValue>,
   #[serde(rename = "spHeader")]
   pub sp_header: SpHeader,
@@ -13,17 +17,17 @@ pub struct SpHeader {
   #[serde(rename = "SP_HEADER_VERSION")]
   pub sp_header_version: i64,
   #[serde(rename = "userStage")]
-  pub user_stage: String,
+  pub user_stage: Option<String>,
   #[serde(rename = "betaTester")]
-  pub beta_tester: bool,
+  pub beta_tester: Option<bool>,
   #[serde(rename = "accountsMetaData")]
-  pub accounts_meta_data: Vec<String>,
+  pub accounts_meta_data: Option<Vec<String>>,
   pub success: bool,
   #[serde(rename = "accountsSummary")]
   pub accounts_summary: Option<AccountsSummary>,
   #[serde(rename = "qualifiedLead")]
-  pub qualified_lead: bool,
-  pub developer: bool,
+  pub qualified_lead: Option<bool>,
+  pub developer: Option<bool>,
   #[serde(rename = "userGuid")]
   pub user_guid: String,
   #[serde(rename = "authLevel")]
@@ -188,6 +192,8 @@ pub enum Status {
   Active,
   #[serde(rename = "INACTIVE")]
   Inactive,
+  #[serde(rename = "NONE")]
+  None,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
