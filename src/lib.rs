@@ -399,14 +399,18 @@ impl Client {
     }
   }
 
-  pub fn user_transactions(&mut self) -> Result<types::UserTransactions, Box<Error>> {
+  pub fn user_transactions<S: Into<String>>(
+    &mut self,
+    start_date: S,
+    end_date: S,
+  ) -> Result<types::UserTransactions, Box<Error>> {
     let url = format!("{}{}", BASE_URL, USER_TRANSACTIONS);
 
     let mut params = HashMap::new();
     params.insert("csrf", self.csrf.clone());
     params.insert("apiClient", "WEB".into());
-    params.insert("startDate", "2019-05-01".into());
-    params.insert("endDate", "2019-05-28".into());
+    params.insert("startDate", start_date.into());
+    params.insert("endDate", end_date.into());
     params.insert("lastServerChangeId", "-1".into());
 
     let req = self.client.post(&url).form(&params).build()?;
