@@ -32,11 +32,11 @@ lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
 }
 
-pub trait TwoFactor {
+pub trait TwoFactor: Send {
   fn get_code(&self) -> String;
 }
 
-pub trait Store {
+pub trait Store: Send {
   type Error;
   fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
   fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
