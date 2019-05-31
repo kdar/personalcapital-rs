@@ -260,3 +260,31 @@ pub enum AuthLevel {
   #[serde(rename = "NONE")]
   None,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct UserSpending {
+  #[serde(rename = "intervals")]
+  intervals: Vec<SpendingInterval>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SpendingInterval {
+  #[serde(rename = "average")]
+  average: Option<f64>,
+  #[serde(rename = "current")]
+  current: f64,
+  #[serde(rename = "details")]
+  details: Vec<SpendingDetail>,
+  #[serde(rename = "target")]
+  target: f64,
+  #[serde(rename = "type")]
+  interval_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SpendingDetail {
+  #[serde(rename = "amount")]
+  amount: f64,
+  #[serde(rename = "date")]
+  date: String,
+}

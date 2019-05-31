@@ -27,6 +27,7 @@ const CHALLENGE_EMAIL: &str = "/api/credential/challengeEmail";
 const AUTHENTICATE_EMAIL: &str = "/api/credential/authenticateEmailByCode";
 const AUTHENTICATE_PASSWORD: &str = "/api/credential/authenticatePassword";
 const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
+const USER_SPENDING: &str = "/api/account/getUserSpending";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -412,6 +413,27 @@ impl Client {
     params.insert("startDate", start_date.into());
     params.insert("endDate", end_date.into());
     params.insert("lastServerChangeId", "-1".into());
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req)?;
+
+    Ok(json)
+  }
+
+  pub fn user_spending(&mut self) -> Result<types::UserSpending, Box<Error>> {
+    let url = format!("{}{}", BASE_URL, USER_SPENDING);
+
+    let mut params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      ("intervalTypes[]", "MONTH".into()),
+      ("intervalTypes[]", "WEEK".into()),
+      ("intervalTypes[]", "YEAR".into()),
+      ("includeDetails", "true".into()),
+      ("includeValues[]", "CURRENT".into()),
+      ("includeValues[]", "TARGET".into()),
+      ("lastServerChangeId", "-1".into()),
+    ];
 
     let req = self.client.post(&url).form(&params).build()?;
     let json = self.request_json(req)?;
