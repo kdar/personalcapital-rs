@@ -372,6 +372,10 @@ impl Client {
   }
 
   pub fn auth(&mut self) -> Result<(), Box<Error>> {
+    if self.auth_level == types::AuthLevel::SessionAuthenticated {
+      return Ok(());
+    }
+
     if self.auth_level == types::AuthLevel::Null || self.csrf.is_empty() {
       self.get_csrf()?;
     }
