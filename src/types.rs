@@ -85,22 +85,22 @@ pub struct Credential {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserTransactions {
   #[serde(rename = "intervalType")]
-  pub interval_type: String,
+  pub interval_type: Option<String>,
   #[serde(rename = "endDate")]
   pub end_date: String,
   #[serde(rename = "moneyIn")]
-  pub money_in: f64,
-  pub transactions: Vec<Transaction>,
+  pub money_in: Option<f64>,
+  pub transactions: Option<Vec<Transaction>>,
   #[serde(rename = "netCashflow")]
-  pub net_cashflow: f64,
+  pub net_cashflow: Option<f64>,
   #[serde(rename = "averageOut")]
-  pub average_out: f64,
+  pub average_out: Option<f64>,
   #[serde(rename = "moneyOut")]
-  pub money_out: f64,
+  pub money_out: Option<f64>,
   #[serde(rename = "startDate")]
   pub start_date: String,
   #[serde(rename = "averageIn")]
-  pub average_in: f64,
+  pub average_in: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
