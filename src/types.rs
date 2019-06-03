@@ -29,7 +29,7 @@ pub struct SpHeader {
   pub qualified_lead: Option<bool>,
   pub developer: Option<bool>,
   #[serde(rename = "userGuid")]
-  pub user_guid: String,
+  pub user_guid: Option<String>,
   #[serde(rename = "authLevel")]
   pub auth_level: AuthLevel,
   pub username: String,
