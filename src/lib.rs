@@ -428,7 +428,7 @@ impl Client {
   pub fn user_spending(&mut self) -> Result<types::UserSpending, Box<Error>> {
     let url = format!("{}{}", BASE_URL, USER_SPENDING);
 
-    let mut params = vec![
+    let params = vec![
       ("csrf", self.csrf.clone()),
       ("apiClient", "WEB".into()),
       ("intervalTypes[]", "MONTH".into()),
@@ -449,7 +449,7 @@ impl Client {
   pub fn accounts(&mut self) -> Result<types::Accounts, Box<Error>> {
     let url = format!("{}{}", BASE_URL, ACCOUNTS);
 
-    let mut params = vec![
+    let params = vec![
       ("csrf", self.csrf.clone()),
       ("apiClient", "WEB".into()),
       ("lastServerChangeId", "-1".into()),
