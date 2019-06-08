@@ -32,7 +32,7 @@ pub struct SpHeader {
   pub user_guid: Option<String>,
   #[serde(rename = "authLevel")]
   pub auth_level: AuthLevel,
-  pub username: String,
+  pub username: Option<String>,
   pub status: Status,
   #[serde(rename = "deviceName")]
   pub device_name: Option<String>,
