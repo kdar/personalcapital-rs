@@ -192,6 +192,8 @@ pub enum Status {
   Active,
   #[serde(rename = "INACTIVE")]
   Inactive,
+  #[serde(rename = "LOCKED")]
+  Locked,
   #[serde(rename = "NONE")]
   None,
 }
