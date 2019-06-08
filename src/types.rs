@@ -660,3 +660,36 @@ pub enum RoutingNumberSource {
   #[serde(rename = "YODLEE_AGGREGATION")]
   YodleeAggregation,
 }
+
+pub type Categories = Vec<Category>;
+
+#[derive(Serialize, Deserialize)]
+pub struct Category {
+  #[serde(rename = "isEditable")]
+  is_editable: bool,
+  name: String,
+  #[serde(rename = "isCustom")]
+  is_custom: bool,
+  #[serde(rename = "isOverride")]
+  is_override: bool,
+  #[serde(rename = "transactionCategoryId")]
+  transaction_category_id: i64,
+  #[serde(rename = "shortDescription")]
+  short_description: Option<String>,
+  #[serde(rename = "type")]
+  category_type: CategoryType,
+  #[serde(rename = "transactionCategoryKey")]
+  transaction_category_key: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum CategoryType {
+  #[serde(rename = "EXPENSE")]
+  Expense,
+  #[serde(rename = "INCOME")]
+  Income,
+  #[serde(rename = "TRANSFER")]
+  Transfer,
+  #[serde(rename = "UNCATEGORIZED")]
+  Uncategorized,
+}

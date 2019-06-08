@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate log;
 extern crate serde;
 #[macro_use]
@@ -29,6 +28,7 @@ const AUTHENTICATE_PASSWORD: &str = "/api/credential/authenticatePassword";
 const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
 const USER_SPENDING: &str = "/api/account/getUserSpending";
 const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
+const CATEGORIES: &str = "/api/transactioncategory/getCategories";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -448,6 +448,21 @@ impl Client {
 
   pub fn accounts(&mut self) -> Result<types::Accounts, Box<Error>> {
     let url = format!("{}{}", BASE_URL, ACCOUNTS);
+
+    let params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      ("lastServerChangeId", "-1".into()),
+    ];
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req)?;
+
+    Ok(json)
+  }
+
+  pub fn categories(&mut self) -> Result<types::Categories, Box<Error>> {
+    let url = format!("{}{}", BASE_URL, CATEGORIES);
 
     let params = vec![
       ("csrf", self.csrf.clone()),
