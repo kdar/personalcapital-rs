@@ -52,7 +52,7 @@ pub struct ErrorDetails {
   #[serde(rename = "fieldName")]
   pub field_name: Option<String>,
   #[serde(rename = "originalValue")]
-  pub original_value: String,
+  pub original_value: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
