@@ -51,7 +51,7 @@ pub trait Store: Send {
 struct DefaultStore;
 
 impl Store for DefaultStore {
-  type Error = Box<Error>;
+  type Error = Box<dyn Error>;
   fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
   }
@@ -94,8 +94,8 @@ impl TwoFactor for DefaultTwoFactor {
 }
 
 pub struct ClientBuilder {
-  two_factor: Box<TwoFactor>,
-  store: Box<Store<Error = Box<Error>>>,
+  two_factor: Box<dyn TwoFactor>,
+  store: Box<dyn Store<Error = Box<dyn Error>>>,
   username: Option<String>,
   password: Option<String>,
   device_name: Option<String>,
@@ -112,12 +112,12 @@ impl ClientBuilder {
     }
   }
 
-  pub fn two_factor(&mut self, value: Box<TwoFactor>) -> &mut Self {
+  pub fn two_factor(&mut self, value: Box<dyn TwoFactor>) -> &mut Self {
     self.two_factor = value;
     self
   }
 
-  pub fn store(&mut self, value: Box<Store<Error = Box<Error>>>) -> &mut Self {
+  pub fn store(&mut self, value: Box<dyn Store<Error = Box<dyn Error>>>) -> &mut Self {
     self.store = value;
     self
   }
@@ -137,7 +137,7 @@ impl ClientBuilder {
     self
   }
 
-  pub fn build(&mut self) -> Result<Client, Box<Error>> {
+  pub fn build(&mut self) -> Result<Client, Box<dyn Error>> {
     if self.username.is_none() {
       return Err("username must be set".into());
     }
@@ -161,9 +161,9 @@ impl ClientBuilder {
     let client = reqwest::Client::builder().default_headers(h).build()?;
 
     // Is there a better way to do this?
-    let mut tf: Box<TwoFactor> = Box::new(DefaultTwoFactor);
+    let mut tf: Box<dyn TwoFactor> = Box::new(DefaultTwoFactor);
     ::std::mem::swap(&mut self.two_factor, &mut tf);
-    let mut store: Box<Store<Error = Box<Error>>> = Box::new(DefaultStore);
+    let mut store: Box<dyn Store<Error = Box<dyn Error>>> = Box::new(DefaultStore);
     ::std::mem::swap(&mut self.store, &mut store);
 
     let cookie_store = if let Some(cookies) = store.load_cookies()? {
@@ -191,8 +191,8 @@ pub struct Client {
   csrf: String,
   auth_level: types::AuthLevel,
   cookie_store: CookieStore,
-  two_factor: Box<TwoFactor>,
-  store: Box<Store<Error = Box<Error>>>,
+  two_factor: Box<dyn TwoFactor>,
+  store: Box<dyn Store<Error = Box<dyn Error>>>,
   username: String,
   password: String,
   device_name: String,
@@ -203,7 +203,7 @@ impl Client {
     &mut self,
     url: reqwest::Url,
     headers: &reqwest::header::HeaderMap,
-  ) -> Result<(), Box<Error>> {
+  ) -> Result<(), Box<dyn Error>> {
     for hv in headers.get_all("set-cookie").iter() {
       if let Ok(s) = hv.to_str() {
         self.cookie_store.parse(s, &url)?;
@@ -236,7 +236,7 @@ impl Client {
     );
   }
 
-  fn request(&mut self, mut req: reqwest::Request) -> Result<reqwest::Response, Box<Error>> {
+  fn request(&mut self, mut req: reqwest::Request) -> Result<reqwest::Response, Box<dyn Error>> {
     self.add_cookie_header(req.headers_mut());
     let url = req.url().clone();
     let res = self.client.execute(req)?;
@@ -249,7 +249,7 @@ impl Client {
     Ok(res)
   }
 
-  fn request_json<T>(&mut self, req: reqwest::Request) -> Result<T, Box<Error>>
+  fn request_json<T>(&mut self, req: reqwest::Request) -> Result<T, Box<dyn Error>>
   where
     T: serde::de::DeserializeOwned,
   {
@@ -276,7 +276,7 @@ impl Client {
     serde_json::from_str(payload).map_err(|e| format!("{} -> {}", e, payload).into())
   }
 
-  fn get_csrf(&mut self) -> Result<(), Box<Error>> {
+  fn get_csrf(&mut self) -> Result<(), Box<dyn Error>> {
     if let Some(csrf) = self.store.load_csrf()? {
       self.csrf = csrf;
       return Ok(());
@@ -298,7 +298,7 @@ impl Client {
     Err("unable to get CSRF token".into())
   }
 
-  fn identify_user(&mut self) -> Result<(), Box<Error>> {
+  fn identify_user(&mut self) -> Result<(), Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, IDENTIFY_USER);
 
     let mut params = HashMap::new();
@@ -321,7 +321,7 @@ impl Client {
     Ok(())
   }
 
-  fn two_factor_auth(&mut self) -> Result<(), Box<Error>> {
+  fn two_factor_auth(&mut self) -> Result<(), Box<dyn Error>> {
     if self.auth_level == types::AuthLevel::UserRemembered {
       return Ok(());
     }
@@ -367,7 +367,7 @@ impl Client {
     return Ok(());
   }
 
-  fn auth_password(&mut self) -> Result<(), Box<Error>> {
+  fn auth_password(&mut self) -> Result<(), Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, AUTHENTICATE_PASSWORD);
 
     let mut params = HashMap::new();
@@ -384,7 +384,7 @@ impl Client {
     Ok(())
   }
 
-  pub fn auth(&mut self) -> Result<(), Box<Error>> {
+  pub fn auth(&mut self) -> Result<(), Box<dyn Error>> {
     if self.auth_level == types::AuthLevel::SessionAuthenticated {
       return Ok(());
     }
@@ -423,7 +423,7 @@ impl Client {
     &mut self,
     start_date: S,
     end_date: S,
-  ) -> Result<types::UserTransactions, Box<Error>> {
+  ) -> Result<types::UserTransactions, Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, USER_TRANSACTIONS);
 
     let mut params = HashMap::new();
@@ -439,7 +439,7 @@ impl Client {
     Ok(json)
   }
 
-  pub fn user_spending(&mut self) -> Result<types::UserSpending, Box<Error>> {
+  pub fn user_spending(&mut self) -> Result<types::UserSpending, Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, USER_SPENDING);
 
     let params = vec![
@@ -460,7 +460,7 @@ impl Client {
     Ok(json)
   }
 
-  pub fn accounts(&mut self) -> Result<types::Accounts, Box<Error>> {
+  pub fn accounts(&mut self) -> Result<types::Accounts, Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, ACCOUNTS);
 
     let params = vec![
@@ -475,7 +475,7 @@ impl Client {
     Ok(json)
   }
 
-  pub fn categories(&mut self) -> Result<types::Categories, Box<Error>> {
+  pub fn categories(&mut self) -> Result<types::Categories, Box<dyn Error>> {
     let url = format!("{}{}", BASE_URL, CATEGORIES);
 
     let params = vec![
