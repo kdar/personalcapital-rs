@@ -35,7 +35,8 @@ lazy_static! {
 }
 
 pub trait TwoFactor: Send {
-  fn get_code(&self) -> String;
+  fn get_code(&self) -> Option<String>;
+  fn should_challenge(&self) -> bool;
 }
 
 pub trait Store: Send {
@@ -69,7 +70,11 @@ impl Store for DefaultStore {
 struct DefaultTwoFactor;
 
 impl TwoFactor for DefaultTwoFactor {
-  fn get_code(&self) -> String {
+  fn should_challenge(&self) -> bool {
+    return true;
+  }
+
+  fn get_code(&self) -> Option<String> {
     use std::io::{stdin, stdout, Write};
     let mut code = String::new();
     print!("Code: ");
@@ -78,7 +83,13 @@ impl TwoFactor for DefaultTwoFactor {
       .read_line(&mut code)
       .expect("did not enter a correct string");
 
-    code.trim().to_string()
+    let code = code.trim().to_string();
+
+    if code.len() == 4 {
+      Some(code)
+    } else {
+      None
+    }
   }
 }
 
@@ -329,27 +340,29 @@ impl Client {
       )
     };
 
-    let mut params = HashMap::new();
-    params.insert("csrf", self.csrf.clone());
-    params.insert("bindDevice", "false".into());
-    params.insert("challengeReason", "DEVICE_AUTH".into());
-    params.insert("challengeMethod", "OP".into());
-    params.insert("challengeType", auth_type.into());
+    if self.two_factor.should_challenge() {
+      let mut params = HashMap::new();
+      params.insert("csrf", self.csrf.clone());
+      params.insert("bindDevice", "false".into());
+      params.insert("challengeReason", "DEVICE_AUTH".into());
+      params.insert("challengeMethod", "OP".into());
+      params.insert("challengeType", auth_type.into());
 
-    let req = self.client.post(&challenge_url).form(&params).build()?;
-    self.request_json(req)?;
+      let req = self.client.post(&challenge_url).form(&params).build()?;
+      self.request_json(req)?;
+    }
 
-    let code = self.two_factor.get_code();
+    if let Some(code) = self.two_factor.get_code() {
+      let mut params = HashMap::new();
+      params.insert("csrf", self.csrf.clone());
+      params.insert("bindDevice", "false".into());
+      params.insert("challengeReason", "DEVICE_AUTH".into());
+      params.insert("challengeMethod", "OP".into());
+      params.insert("code", code.into());
 
-    let mut params = HashMap::new();
-    params.insert("csrf", self.csrf.clone());
-    params.insert("bindDevice", "false".into());
-    params.insert("challengeReason", "DEVICE_AUTH".into());
-    params.insert("challengeMethod", "OP".into());
-    params.insert("code", code.into());
-
-    let req = self.client.post(&auth_url).form(&params).build()?;
-    self.request_json(req)?;
+      let req = self.client.post(&auth_url).form(&params).build()?;
+      self.request_json(req)?;
+    }
 
     return Ok(());
   }
@@ -394,6 +407,7 @@ impl Client {
 
     match self.auth_level {
       types::AuthLevel::SessionAuthenticated => Ok(()),
+      types::AuthLevel::UserIdentified => Err("awaiting challenge code".into()),
       types::AuthLevel::None => Err("could not auth".into()),
       _ => Err(
         format!(
