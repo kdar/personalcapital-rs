@@ -6,6 +6,7 @@ extern crate serde_json;
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 
 use cookie_store::CookieStore;
 use lazy_static::lazy_static;
@@ -35,8 +36,26 @@ lazy_static! {
 }
 
 pub trait TwoFactor: Send {
-  fn get_code(&self) -> Option<String>;
-  fn should_challenge(&self) -> bool;
+  fn get_code(&mut self) -> Option<String>;
+  fn should_challenge(&mut self) -> bool;
+  fn set_status(&mut self, success: bool) {}
+}
+
+impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
+  fn get_code(&mut self) -> Option<String> {
+    let mut l = self.lock().unwrap();
+    l.get_code()
+  }
+
+  fn should_challenge(&mut self) -> bool {
+    let mut l = self.lock().unwrap();
+    l.should_challenge()
+  }
+
+  fn set_status(&mut self, success: bool) {
+    let mut l = self.lock().unwrap();
+    l.set_status(success)
+  }
 }
 
 pub trait Store: Send {
@@ -70,11 +89,11 @@ impl Store for DefaultStore {
 struct DefaultTwoFactor;
 
 impl TwoFactor for DefaultTwoFactor {
-  fn should_challenge(&self) -> bool {
+  fn should_challenge(&mut self) -> bool {
     return true;
   }
 
-  fn get_code(&self) -> Option<String> {
+  fn get_code(&mut self) -> Option<String> {
     use std::io::{stdin, stdout, Write};
     let mut code = String::new();
     print!("Code: ");
@@ -361,7 +380,15 @@ impl Client {
       params.insert("code", code.into());
 
       let req = self.client.post(&auth_url).form(&params).build()?;
-      self.request_json(req)?;
+      match self.request_json(req) {
+        Ok(()) => {
+          self.two_factor.set_status(true);
+        }
+        Err(e) => {
+          self.two_factor.set_status(false);
+          return Err(e);
+        }
+      };
     }
 
     return Ok(());
