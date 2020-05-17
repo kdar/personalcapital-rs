@@ -15,3 +15,6 @@ log = "0.4.6"
 env_logger = "0.6.1"
 serde = "1.0.91"
 serde_derive = "1.0.91"
+
+[[example]]
+name = "investment-type-total"
