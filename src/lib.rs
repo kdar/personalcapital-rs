@@ -17,7 +17,7 @@ use reqwest::{
 };
 use url::percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
 
-mod types;
+pub mod types;
 
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
@@ -38,7 +38,7 @@ lazy_static! {
 pub trait TwoFactor: Send {
   fn get_code(&mut self) -> Option<String>;
   fn should_challenge(&mut self) -> bool;
-  fn set_status(&mut self, success: bool) {}
+  fn set_status(&mut self, _success: bool) {}
 }
 
 impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
