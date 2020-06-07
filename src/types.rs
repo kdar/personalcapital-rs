@@ -257,13 +257,13 @@ pub enum AuthLevel {
   None,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserSpending {
   #[serde(rename = "intervals")]
   pub intervals: Vec<SpendingInterval>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SpendingInterval {
   #[serde(rename = "average")]
   pub average: Option<f64>,
@@ -277,7 +277,7 @@ pub struct SpendingInterval {
   pub interval_type: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SpendingDetail {
   #[serde(rename = "amount")]
   pub amount: f64,
@@ -285,7 +285,7 @@ pub struct SpendingDetail {
   pub date: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Accounts {
   #[serde(rename = "creditCardAccountsTotal")]
   pub credit_card_accounts_total: f64,
@@ -307,7 +307,7 @@ pub struct Accounts {
   pub other_asset_accounts_total: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
   #[serde(rename = "isOnUs")]
   pub is_on_us: bool,
@@ -526,14 +526,14 @@ pub struct Account {
   pub disbursement_type: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ContactInfo {
   pub url: Option<String>,
   pub phone: Option<String>,
   pub email: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoginField {
   #[serde(rename = "isUsername")]
   pub is_username: Option<bool>,
@@ -546,7 +546,7 @@ pub struct LoginField {
   pub is_password: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoginPart {
   pub size: i64,
   pub name: String,
@@ -558,7 +558,7 @@ pub struct LoginPart {
   pub mask: Option<Mask>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NextAction {
   #[serde(rename = "nextActionMessage")]
   pub next_action_message: Option<String>,
@@ -624,7 +624,7 @@ impl Default for AccountTypeSubtype {
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum AmountDue {
   NaN,
 }
@@ -637,7 +637,7 @@ pub enum Currency {
   Usd,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Id {
   #[serde(rename = "LOGIN")]
   Login,
@@ -651,13 +651,13 @@ pub enum Id {
   Option,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Mask {
   #[serde(rename = "LOGIN_FIELD")]
   LoginField,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum PartType {
   #[serde(rename = "PASSWORD")]
   Password,
@@ -667,13 +667,13 @@ pub enum PartType {
   Options,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum MfaType {
   #[serde(rename = "SECURITY_QUESTION")]
   SecurityQuestion,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Action {
   #[serde(rename = "NONE")]
   None,
@@ -691,7 +691,7 @@ pub enum Action {
   VisitSite,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum AggregationErrorType {
   #[serde(rename = "NO_ERROR")]
   NoError,
@@ -707,7 +707,7 @@ pub enum AggregationErrorType {
   SiteError,
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ProductType {
   #[serde(rename = "BANK")]
   Bank,
@@ -721,7 +721,7 @@ pub enum ProductType {
   OtherAssets,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum RoutingNumberSource {
   #[serde(rename = "YODLEE_AGGREGATION")]
   YodleeAggregation,
@@ -729,7 +729,7 @@ pub enum RoutingNumberSource {
 
 pub type Categories = Vec<Category>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Category {
   #[serde(rename = "isEditable")]
   pub is_editable: bool,
@@ -748,7 +748,7 @@ pub struct Category {
   pub transaction_category_key: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum CategoryType {
   #[serde(rename = "EXPENSE")]
   Expense,
