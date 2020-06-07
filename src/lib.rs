@@ -37,30 +37,30 @@ lazy_static! {
 
 pub type Error = Box<dyn StdError + Send + Sync>;
 
-pub trait TwoFactor: Send {
+pub trait TwoFactor {
   fn get_code(&mut self) -> Option<String>;
   fn should_challenge(&mut self) -> bool;
   fn set_status(&mut self, _success: bool) {}
 }
 
-impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
-  fn get_code(&mut self) -> Option<String> {
-    let mut l = self.lock().unwrap();
-    l.get_code()
-  }
+// impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
+//   fn get_code(&mut self) -> Option<String> {
+//     let mut l = self.lock().unwrap();
+//     l.get_code()
+//   }
 
-  fn should_challenge(&mut self) -> bool {
-    let mut l = self.lock().unwrap();
-    l.should_challenge()
-  }
+//   fn should_challenge(&mut self) -> bool {
+//     let mut l = self.lock().unwrap();
+//     l.should_challenge()
+//   }
 
-  fn set_status(&mut self, success: bool) {
-    let mut l = self.lock().unwrap();
-    l.set_status(success)
-  }
-}
+//   fn set_status(&mut self, success: bool) {
+//     let mut l = self.lock().unwrap();
+//     l.set_status(success)
+//   }
+// }
 
-pub trait Store: Send {
+pub trait Store {
   type Error;
   fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
   fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
