@@ -13,23 +13,28 @@ fn main() {
   let mut tax_free: f64 = 0.0;
 
   for account in v.accounts {
-    if account.product_type != types::ProductType::Investment || account.is_exclude_from_household {
+    if account.product_type.is_none()
+      || account.product_type.unwrap() != types::ProductType::Investment
+      || account.is_exclude_from_household
+    {
       continue;
     }
 
     match (account.account_type_new, account.account_type_subtype) {
       (types::AccountTypeNew::Investment, types::AccountTypeSubtype::None) => {
-        taxable += account.balance
+        taxable += account.balance.unwrap()
       }
-      (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Roth) => tax_free += account.balance,
+      (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Roth) => {
+        tax_free += account.balance.unwrap()
+      }
       (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Traditional) => {
-        tax_deferred += account.balance
+        tax_deferred += account.balance.unwrap()
       }
       (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Traditional) => {
-        tax_deferred += account.balance
+        tax_deferred += account.balance.unwrap()
       }
       (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Roth) => {
-        tax_free += account.balance
+        tax_free += account.balance.unwrap()
       }
       (_, _) => {}
     };
