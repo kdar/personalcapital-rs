@@ -312,32 +312,32 @@ pub struct Account {
   #[serde(rename = "isOnUs")]
   pub is_on_us: bool,
   #[serde(rename = "userProductId")]
-  pub user_product_id: i64,
+  pub user_product_id: Option<i64>,
   #[serde(rename = "contactInfo")]
   pub contact_info: Option<ContactInfo>,
   #[serde(rename = "dueDate")]
   pub due_date: Option<i64>,
   pub memo: Option<String>,
   #[serde(rename = "isHome")]
-  pub is_home: bool,
+  pub is_home: Option<bool>,
   #[serde(rename = "nextAction")]
   pub next_action: NextAction,
   #[serde(rename = "isIAVEligible")]
-  pub is_iav_eligible: bool,
+  pub is_iav_eligible: Option<bool>,
   #[serde(rename = "loginFields")]
   pub login_fields: Vec<LoginField>,
   #[serde(rename = "enrollmentConciergeRequested")]
-  pub enrollment_concierge_requested: i64,
+  pub enrollment_concierge_requested: Option<i64>,
   #[serde(rename = "isCrypto")]
   pub is_crypto: bool,
   #[serde(rename = "isPartner")]
   pub is_partner: bool,
   #[serde(rename = "isCustomManual")]
-  pub is_custom_manual: bool,
+  pub is_custom_manual: Option<bool>,
   #[serde(rename = "originalName")]
-  pub original_name: String,
+  pub original_name: Option<String>,
   #[serde(rename = "isIAVAccountNumberValid")]
-  pub is_iav_account_number_valid: bool,
+  pub is_iav_account_number_valid: Option<bool>,
   #[serde(rename = "accountHolder")]
   pub account_holder: Option<String>,
   #[serde(rename = "isExcludeFromHousehold")]
@@ -345,11 +345,11 @@ pub struct Account {
   #[serde(rename = "isAsset")]
   pub is_asset: bool,
   pub aggregating: bool,
-  pub balance: f64,
+  pub balance: Option<f64>,
   #[serde(rename = "isStatementDownloadEligible")]
-  pub is_statement_download_eligible: bool,
+  pub is_statement_download_eligible: Option<bool>,
   #[serde(rename = "is401KEligible")]
-  pub is401_k_eligible: bool,
+  pub is401_k_eligible: Option<bool>,
   #[serde(rename = "creditLimit")]
   pub credit_limit: Option<f64>,
   #[serde(rename = "isAccountUsedInFunding")]
@@ -357,14 +357,14 @@ pub struct Account {
   #[serde(rename = "isOnUs401K")]
   pub is_on_us401_k: bool,
   #[serde(rename = "advisoryFeePercentage")]
-  pub advisory_fee_percentage: f64,
+  pub advisory_fee_percentage: Option<f64>,
   #[serde(rename = "lastRefreshed")]
-  pub last_refreshed: i64,
+  pub last_refreshed: Option<i64>,
   pub apr: Option<f64>,
   #[serde(rename = "availableCredit")]
   pub available_credit: Option<f64>,
   #[serde(rename = "productId")]
-  pub product_id: i64,
+  pub product_id: Option<i64>,
   #[serde(rename = "userSiteId")]
   pub user_site_id: i64,
   #[serde(rename = "is365DayTransactionEligible")]
@@ -374,9 +374,9 @@ pub struct Account {
   #[serde(rename = "logoPath")]
   pub logo_path: Option<String>,
   #[serde(rename = "currentBalance")]
-  pub current_balance: f64,
+  pub current_balance: Option<f64>,
   #[serde(rename = "accountType")]
-  pub account_type: String,
+  pub account_type: Option<String>,
   #[serde(rename = "paymentFromStatus")]
   pub payment_from_status: bool,
   #[serde(rename = "isRefetchTransactionEligible")]
@@ -390,8 +390,8 @@ pub struct Account {
   #[serde(rename = "excludeFromProposal")]
   pub exclude_from_proposal: Option<bool>,
   #[serde(rename = "userAccountId")]
-  pub user_account_id: i64,
-  pub name: String,
+  pub user_account_id: Option<i64>,
+  pub name: Option<String>,
   #[serde(rename = "firmName")]
   pub firm_name: String,
   #[serde(rename = "accountTypeGroup")]
@@ -399,7 +399,7 @@ pub struct Account {
   #[serde(rename = "paymentToStatus")]
   pub payment_to_status: bool,
   #[serde(rename = "isSelectedForTransfer")]
-  pub is_selected_for_transfer: bool,
+  pub is_selected_for_transfer: Option<bool>,
   #[serde(rename = "oldestTransactionDate")]
   pub oldest_transaction_date: Option<String>,
   #[serde(rename = "isOnUsBank")]
@@ -416,16 +416,16 @@ pub struct Account {
   #[serde(rename = "mfaType")]
   pub mfa_type: Option<MfaType>,
   #[serde(rename = "isTaxDeferredOrNonTaxable")]
-  pub is_tax_deferred_or_non_taxable: bool,
+  pub is_tax_deferred_or_non_taxable: Option<bool>,
   #[serde(rename = "lastPaymentDate")]
   pub last_payment_date: Option<i64>,
   #[serde(rename = "lastPaymentAmount")]
   pub last_payment_amount: Option<AmountDue>,
-  pub currency: Currency,
+  pub currency: Option<Currency>,
   #[serde(rename = "pcbEnrollmentState")]
   pub pcb_enrollment_state: Option<String>,
   #[serde(rename = "productType")]
-  pub product_type: ProductType,
+  pub product_type: Option<ProductType>,
   #[serde(rename = "isAccountNumberValidated")]
   pub is_account_number_validated: Option<bool>,
   #[serde(rename = "minPaymentDue")]
@@ -443,7 +443,7 @@ pub struct Account {
   #[serde(rename = "isEsog")]
   pub is_esog: bool,
   #[serde(rename = "createdDate")]
-  pub created_date: i64,
+  pub created_date: Option<i64>,
   #[serde(rename = "closedDate")]
   pub closed_date: String,
   #[serde(rename = "isPaymentFromCapable")]
@@ -563,8 +563,8 @@ pub struct NextAction {
   #[serde(rename = "nextActionMessage")]
   pub next_action_message: Option<String>,
   #[serde(rename = "iconType")]
-  pub icon_type: Action,
-  pub action: Action,
+  pub icon_type: Option<Action>,
+  pub action: Option<Action>,
   #[serde(rename = "reportAction")]
   pub report_action: Action,
   #[serde(rename = "statusMessage")]
@@ -649,6 +649,8 @@ pub enum Id {
   OpPassword1,
   #[serde(rename = "OPTION")]
   Option,
+  #[serde(rename = "OP_OPTION")]
+  OpOption,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -689,6 +691,12 @@ pub enum Action {
   InitiateRefresh,
   #[serde(rename = "VISIT_SITE")]
   VisitSite,
+  #[serde(rename = "INFO")]
+  Info,
+  #[serde(rename = "CLOSE_ACCOUNT")]
+  CloseAccount,
+  #[serde(rename = "BLOCKED")]
+  Blocked,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -705,6 +713,8 @@ pub enum AggregationErrorType {
   VisitSiteRequired,
   #[serde(rename = "SITE_ERROR")]
   SiteError,
+  #[serde(rename = "AGENT_ERROR")]
+  AgentError,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

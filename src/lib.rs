@@ -305,7 +305,7 @@ impl Client {
 
     let req = self.client.get(BASE_URL).build()?;
     let res = self.request(req)?;
-    let body = res.text()?;
+    let body: String = res.text()?;
 
     if let Some(captures) = CSRF_RE.captures(&body) {
       if let Some(csrf) = captures.get(1) {
