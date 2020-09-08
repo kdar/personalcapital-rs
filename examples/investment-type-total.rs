@@ -4,7 +4,7 @@ use personalcapital::types;
 use serde_json;
 
 fn main() {
-  let json = fs::read_to_string("./.secret/getAccounts2.json").unwrap();
+  let json = fs::read_to_string("./.secret/getAccounts2 08-15-2020.json").unwrap();
   let v: types::Response = serde_json::from_str(&json).unwrap();
   let v: types::Accounts = serde_json::from_str(v.sp_data.get()).unwrap();
 
@@ -23,20 +23,20 @@ fn main() {
     match (account.account_type_new, account.account_type_subtype) {
       (types::AccountTypeNew::Investment, types::AccountTypeSubtype::None) => {
         taxable += account.balance.unwrap()
-      }
+      },
       (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Roth) => {
         tax_free += account.balance.unwrap()
-      }
+      },
       (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Traditional) => {
         tax_deferred += account.balance.unwrap()
-      }
+      },
       (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Traditional) => {
         tax_deferred += account.balance.unwrap()
-      }
+      },
       (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Roth) => {
         tax_free += account.balance.unwrap()
-      }
-      (_, _) => {}
+      },
+      (..) => {},
     };
     // println!(
     //   "{}; {:?}; {:?}; {:?}; {:?}",

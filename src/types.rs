@@ -715,6 +715,8 @@ pub enum AggregationErrorType {
   SiteError,
   #[serde(rename = "AGENT_ERROR")]
   AgentError,
+  #[serde(rename = "MFA_TIMEDOUT")]
+  MfaTimedout,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
