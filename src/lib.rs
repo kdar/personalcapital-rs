@@ -8,12 +8,13 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use cookie_store::CookieStore;
 use lazy_static::lazy_static;
 use percent_encoding::percent_encode;
 use regex::Regex;
 use reqwest::{
-  self, blocking as reqblock,
+  self,
   header::{self, HeaderMap},
 };
 
@@ -37,10 +38,11 @@ lazy_static! {
 
 pub type Error = Box<dyn StdError + Send + Sync>;
 
-pub trait TwoFactor {
-  fn get_code(&mut self) -> Option<String>;
-  fn should_challenge(&mut self) -> bool;
-  fn set_status(&mut self, _success: bool) {}
+#[async_trait]
+pub trait TwoFactor: Send {
+  async fn get_code(&mut self) -> Option<String>;
+  async fn should_challenge(&mut self) -> bool;
+  async fn set_status(&mut self, _success: bool) {}
 }
 
 // impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
@@ -60,29 +62,31 @@ pub trait TwoFactor {
 //   }
 // }
 
+#[async_trait]
 pub trait Store {
   type Error;
-  fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
-  fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
-  fn load_csrf(&mut self) -> Result<Option<String>, Self::Error>;
-  fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
+  async fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
+  async fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
+  async fn load_csrf(&mut self) -> Result<Option<String>, Self::Error>;
+  async fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 #[derive(Clone, Default)]
 struct DefaultStore;
 
+#[async_trait]
 impl Store for DefaultStore {
   type Error = Error;
-  fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
+  async fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
   }
-  fn save_cookies(&mut self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
+  async fn save_cookies(&mut self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
     Ok(())
   }
-  fn load_csrf(&mut self) -> Result<Option<String>, Self::Error> {
+  async fn load_csrf(&mut self) -> Result<Option<String>, Self::Error> {
     Ok(None)
   }
-  fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
+  async fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
     Ok(None)
   }
 }
@@ -90,12 +94,13 @@ impl Store for DefaultStore {
 #[derive(Clone, Default)]
 struct DefaultTwoFactor;
 
+#[async_trait]
 impl TwoFactor for DefaultTwoFactor {
-  fn should_challenge(&mut self) -> bool {
+  async fn should_challenge(&mut self) -> bool {
     return true;
   }
 
-  fn get_code(&mut self) -> Option<String> {
+  async fn get_code(&mut self) -> Option<String> {
     use std::io::{stdin, stdout, Write};
     let mut code = String::new();
     print!("Code: ");
@@ -158,7 +163,7 @@ impl ClientBuilder {
     self
   }
 
-  pub fn build(&mut self) -> Result<Client, Error> {
+  pub async fn build(&mut self) -> Result<Client, Error> {
     if self.username.is_none() {
       return Err("username must be set".into());
     }
@@ -179,7 +184,7 @@ impl ClientBuilder {
     h.insert("authority", "home.personalcapital.com".parse()?);
     h.insert(header::ORIGIN, "https://home.personalcapital.com".parse()?);
 
-    let client = reqblock::Client::builder().default_headers(h).build()?;
+    let client = reqwest::Client::builder().default_headers(h).build()?;
 
     // Is there a better way to do this?
     let mut tf: Box<dyn TwoFactor> = Box::new(DefaultTwoFactor);
@@ -187,7 +192,7 @@ impl ClientBuilder {
     let mut store: Box<dyn Store<Error = Error>> = Box::new(DefaultStore);
     ::std::mem::swap(&mut self.store, &mut store);
 
-    let cookie_store = if let Some(cookies) = store.load_cookies()? {
+    let cookie_store = if let Some(cookies) = store.load_cookies().await? {
       CookieStore::load_json(&cookies[..])?
     } else {
       CookieStore::default()
@@ -208,7 +213,7 @@ impl ClientBuilder {
 }
 
 pub struct Client {
-  client: reqblock::Client,
+  client: reqwest::Client,
   csrf: String,
   auth_level: types::AuthLevel,
   cookie_store: CookieStore,
@@ -220,7 +225,7 @@ pub struct Client {
 }
 
 impl Client {
-  fn store_cookies(
+  async fn store_cookies(
     &mut self,
     url: reqwest::Url,
     headers: &reqwest::header::HeaderMap,
@@ -233,7 +238,7 @@ impl Client {
 
     let mut buf = vec![];
     self.cookie_store.save_json(&mut buf)?;
-    self.store.save_cookies(buf)?;
+    self.store.save_cookies(buf).await?;
 
     Ok(())
   }
@@ -257,25 +262,25 @@ impl Client {
     );
   }
 
-  fn request(&mut self, mut req: reqblock::Request) -> Result<reqblock::Response, Error> {
+  async fn request(&mut self, mut req: reqwest::Request) -> Result<reqwest::Response, Error> {
     self.add_cookie_header(req.headers_mut());
     let url = req.url().clone();
-    let res = self.client.execute(req)?;
+    let res = self.client.execute(req).await?;
 
     if let Err(e) = res.error_for_status_ref() {
       return Err(e.into());
     }
 
-    self.store_cookies(url, &res.headers())?;
+    self.store_cookies(url, &res.headers()).await?;
     Ok(res)
   }
 
-  fn request_json<T>(&mut self, req: reqblock::Request) -> Result<T, Error>
+  async fn request_json<T>(&mut self, req: reqwest::Request) -> Result<T, Error>
   where
     T: serde::de::DeserializeOwned,
   {
-    let res = self.request(req)?;
-    let json: types::Response = res.json()?;
+    let res = self.request(req).await?;
+    let json: types::Response = res.json().await?;
 
     if let Some(csrf) = json.sp_header.csrf {
       self.csrf = csrf.clone();
@@ -297,21 +302,21 @@ impl Client {
     serde_json::from_str(payload).map_err(|e| format!("{} -> {}", e, payload).into())
   }
 
-  fn get_csrf(&mut self) -> Result<(), Error> {
-    if let Some(csrf) = self.store.load_csrf()? {
+  async fn get_csrf(&mut self) -> Result<(), Error> {
+    if let Some(csrf) = self.store.load_csrf().await? {
       self.csrf = csrf;
       return Ok(());
     }
 
     let req = self.client.get(BASE_URL).build()?;
-    let res = self.request(req)?;
-    let body: String = res.text()?;
+    let res = self.request(req).await?;
+    let body: String = res.text().await?;
 
     if let Some(captures) = CSRF_RE.captures(&body) {
       if let Some(csrf) = captures.get(1) {
         self.csrf = csrf.as_str().into();
         self.auth_level = types::AuthLevel::Csrf;
-        self.store.save_csrf(self.csrf.clone())?;
+        self.store.save_csrf(self.csrf.clone()).await?;
         return Ok(());
       }
     }
@@ -319,7 +324,7 @@ impl Client {
     Err("unable to get CSRF token".into())
   }
 
-  fn identify_user(&mut self) -> Result<(), Error> {
+  async fn identify_user(&mut self) -> Result<(), Error> {
     let url = format!("{}{}", BASE_URL, IDENTIFY_USER);
 
     let mut params = HashMap::new();
@@ -333,7 +338,7 @@ impl Client {
     params.insert("referrerId", String::new());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json: types::IdentifyUser = self.request_json(req)?;
+    let json: types::IdentifyUser = self.request_json(req).await?;
 
     if json.user_status == types::Status::Inactive {
       return Err(format!("the username \"{}\" is inactive", self.username).into());
@@ -342,7 +347,7 @@ impl Client {
     Ok(())
   }
 
-  fn two_factor_auth(&mut self) -> Result<(), Error> {
+  async fn two_factor_auth(&mut self) -> Result<(), Error> {
     if self.auth_level == types::AuthLevel::UserRemembered {
       return Ok(());
     }
@@ -361,7 +366,7 @@ impl Client {
       )
     };
 
-    if self.two_factor.should_challenge() {
+    if self.two_factor.should_challenge().await {
       let mut params = HashMap::new();
       params.insert("csrf", self.csrf.clone());
       params.insert("bindDevice", "false".into());
@@ -370,10 +375,10 @@ impl Client {
       params.insert("challengeType", auth_type.into());
 
       let req = self.client.post(&challenge_url).form(&params).build()?;
-      self.request_json(req)?;
+      self.request_json(req).await?;
     }
 
-    if let Some(code) = self.two_factor.get_code() {
+    if let Some(code) = self.two_factor.get_code().await {
       let mut params = HashMap::new();
       params.insert("csrf", self.csrf.clone());
       params.insert("bindDevice", "false".into());
@@ -382,12 +387,12 @@ impl Client {
       params.insert("code", code.into());
 
       let req = self.client.post(&auth_url).form(&params).build()?;
-      match self.request_json(req) {
+      match self.request_json(req).await {
         Ok(()) => {
-          self.two_factor.set_status(true);
+          self.two_factor.set_status(true).await;
         }
         Err(e) => {
-          self.two_factor.set_status(false);
+          self.two_factor.set_status(false).await;
           return Err(e);
         }
       };
@@ -396,7 +401,7 @@ impl Client {
     return Ok(());
   }
 
-  fn auth_password(&mut self) -> Result<(), Error> {
+  async fn auth_password(&mut self) -> Result<(), Error> {
     let url = format!("{}{}", BASE_URL, AUTHENTICATE_PASSWORD);
 
     let mut params = HashMap::new();
@@ -408,30 +413,32 @@ impl Client {
     params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    self.request_json::<types::AuthenticatePassword>(req)?;
+    self
+      .request_json::<types::AuthenticatePassword>(req)
+      .await?;
 
     Ok(())
   }
 
-  pub fn auth(&mut self) -> Result<(), Error> {
+  pub async fn auth(&mut self) -> Result<(), Error> {
     if self.auth_level == types::AuthLevel::SessionAuthenticated {
       return Ok(());
     }
 
     if self.auth_level == types::AuthLevel::Null || self.csrf.is_empty() {
-      self.get_csrf()?;
+      self.get_csrf().await?;
     }
 
-    self.identify_user()?;
+    self.identify_user().await?;
 
     if self.auth_level == types::AuthLevel::UserIdentified {
-      self.two_factor_auth()?;
+      self.two_factor_auth().await?;
     }
 
     if self.auth_level == types::AuthLevel::DeviceAuthorized
       || self.auth_level == types::AuthLevel::UserRemembered
     {
-      self.auth_password()?;
+      self.auth_password().await?;
     }
 
     match self.auth_level {
@@ -448,7 +455,7 @@ impl Client {
     }
   }
 
-  pub fn user_transactions<S: Into<String>>(
+  pub async fn user_transactions<S: Into<String>>(
     &mut self,
     start_date: S,
     end_date: S,
@@ -463,12 +470,12 @@ impl Client {
     params.insert("lastServerChangeId", "-1".into());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    let json = self.request_json(req).await?;
 
     Ok(json)
   }
 
-  pub fn user_spending(&mut self) -> Result<types::UserSpending, Error> {
+  pub async fn user_spending(&mut self) -> Result<types::UserSpending, Error> {
     let url = format!("{}{}", BASE_URL, USER_SPENDING);
 
     let params = vec![
@@ -484,12 +491,12 @@ impl Client {
     ];
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    let json = self.request_json(req).await?;
 
     Ok(json)
   }
 
-  pub fn accounts(&mut self) -> Result<types::Accounts, Error> {
+  pub async fn accounts(&mut self) -> Result<types::Accounts, Error> {
     let url = format!("{}{}", BASE_URL, ACCOUNTS);
 
     let params = vec![
@@ -499,12 +506,12 @@ impl Client {
     ];
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    let json = self.request_json(req).await?;
 
     Ok(json)
   }
 
-  pub fn categories(&mut self) -> Result<types::Categories, Error> {
+  pub async fn categories(&mut self) -> Result<types::Categories, Error> {
     let url = format!("{}{}", BASE_URL, CATEGORIES);
 
     let params = vec![
@@ -514,7 +521,7 @@ impl Client {
     ];
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json = self.request_json(req)?;
+    let json = self.request_json(req).await?;
 
     Ok(json)
   }
