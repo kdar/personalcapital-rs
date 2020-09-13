@@ -4,9 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use std::collections::HashMap;
-use std::error::Error as StdError;
-use std::sync::{Arc, Mutex};
+use std::{collections::HashMap, error::Error as StdError};
 
 use async_trait::async_trait;
 use cookie_store::CookieStore;
@@ -77,15 +75,19 @@ struct DefaultStore;
 #[async_trait]
 impl Store for DefaultStore {
   type Error = Error;
+
   async fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
   }
+
   async fn save_cookies(&mut self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
     Ok(())
   }
+
   async fn load_csrf(&mut self) -> Result<Option<String>, Self::Error> {
     Ok(None)
   }
+
   async fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
     Ok(None)
   }
