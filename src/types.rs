@@ -697,6 +697,8 @@ pub enum Action {
   CloseAccount,
   #[serde(rename = "BLOCKED")]
   Blocked,
+  #[serde(rename = "MORE_INFO")]
+  MoreInfo,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -717,6 +719,8 @@ pub enum AggregationErrorType {
   AgentError,
   #[serde(rename = "MFA_TIMEDOUT")]
   MfaTimedout,
+  #[serde(rename = "PASSWORD_OR_QUESTIONS_INCORRECT")]
+  PasswordOrQuestionsIncorrect,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
