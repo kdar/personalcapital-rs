@@ -216,6 +216,8 @@ pub enum ResultType {
 pub enum TransactionStatus {
   #[serde(rename = "posted")]
   Posted,
+  #[serde(rename = "pending")]
+  Pending,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -223,6 +225,8 @@ pub enum TransactionType {
   Buy,
   #[serde(rename = "Cash In")]
   CashIn,
+  #[serde(rename = "Cash Out")]
+  CashOut,
   Credit,
   Debit,
   #[serde(rename = "Dividend Received")]
@@ -235,8 +239,18 @@ pub enum TransactionType {
   ReinvestDividend,
   Sell,
   Conversion,
+  #[serde(rename = "Shares In")]
+  SharesIn,
   #[serde(rename = "Shares Out")]
   SharesOut,
+  #[serde(rename = "Contribution")]
+  Contribution,
+  #[serde(rename = "401k Contribution")]
+  Contribution401k,
+  #[serde(rename = "RollOver Contribution")]
+  ContributionRollOver,
+  #[serde(rename = "Other")]
+  Other,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
