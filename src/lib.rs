@@ -15,6 +15,7 @@ use reqwest::{
   self,
   header::{self, HeaderMap},
 };
+use thiserror::Error;
 
 pub mod types;
 
@@ -29,36 +30,46 @@ const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
 const USER_SPENDING: &str = "/api/account/getUserSpending";
 const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
 const CATEGORIES: &str = "/api/transactioncategory/getCategories";
+const CHALLENGE_TYPE_EMAIL: &str = "2";
+const CHALLENGE_TYPE_SMS: &str = "0";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
 }
 
-pub type Error = Box<dyn StdError + Send + Sync>;
+pub type SyncError = Box<dyn StdError + Send + Sync>;
 
-#[async_trait]
-pub trait TwoFactor: Send {
-  async fn get_code(&mut self) -> Option<String>;
-  async fn should_challenge(&mut self) -> bool;
-  async fn set_status(&mut self, _success: bool) {}
+#[derive(Error, Debug)]
+pub enum Error {
+  #[error("two factor required")]
+  TwoFactorRequired,
+  #[error("awaiting two factor code")]
+  AwaitingTwoFactorCode,
+  #[error("login failed")]
+  LoginFailed,
+  #[error("call login() first")]
+  CallLogin,
+  #[error("username not set")]
+  UsernameNotSet,
+  #[error("password not set")]
+  PasswordNotSet,
+  #[error("device name not set")]
+  DeviceNameNotSet,
+  #[error("unable to get CSRF token")]
+  CrsfToken,
+  #[error("username {0} is inactive")]
+  InactiveUser(String),
+  #[error("reqwest error")]
+  Reqwest(#[from] reqwest::Error),
+  #[error("cookie store error")]
+  CookieStore(#[from] cookie_store::CookieError),
+  #[error("personal capital error")]
+  PersonalCapital(String),
+  #[error("serde_json error")]
+  SerdeJson(#[from] serde_json::error::Error),
+  #[error(transparent)]
+  Other(#[from] SyncError),
 }
-
-// impl<T: TwoFactor> TwoFactor for Arc<Mutex<T>> {
-//   fn get_code(&mut self) -> Option<String> {
-//     let mut l = self.lock().unwrap();
-//     l.get_code()
-//   }
-
-//   fn should_challenge(&mut self) -> bool {
-//     let mut l = self.lock().unwrap();
-//     l.should_challenge()
-//   }
-
-//   fn set_status(&mut self, success: bool) {
-//     let mut l = self.lock().unwrap();
-//     l.set_status(success)
-//   }
-// }
 
 #[async_trait]
 pub trait Store {
@@ -74,7 +85,7 @@ struct DefaultStore;
 
 #[async_trait]
 impl Store for DefaultStore {
-  type Error = Error;
+  type Error = SyncError;
 
   async fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
@@ -93,37 +104,8 @@ impl Store for DefaultStore {
   }
 }
 
-#[derive(Clone, Default)]
-struct DefaultTwoFactor;
-
-#[async_trait]
-impl TwoFactor for DefaultTwoFactor {
-  async fn should_challenge(&mut self) -> bool {
-    return true;
-  }
-
-  async fn get_code(&mut self) -> Option<String> {
-    use std::io::{stdin, stdout, Write};
-    let mut code = String::new();
-    print!("Code: ");
-    let _ = stdout().flush();
-    stdin()
-      .read_line(&mut code)
-      .expect("did not enter a correct string");
-
-    let code = code.trim().to_string();
-
-    if code.len() == 4 {
-      Some(code)
-    } else {
-      None
-    }
-  }
-}
-
 pub struct ClientBuilder {
-  two_factor: Box<dyn TwoFactor>,
-  store: Box<dyn Store<Error = Error>>,
+  store: Box<dyn Store<Error = SyncError>>,
   username: Option<String>,
   password: Option<String>,
   device_name: Option<String>,
@@ -132,7 +114,6 @@ pub struct ClientBuilder {
 impl ClientBuilder {
   pub fn new() -> Self {
     ClientBuilder {
-      two_factor: Box::new(DefaultTwoFactor),
       store: Box::new(DefaultStore),
       username: None,
       password: None,
@@ -140,12 +121,7 @@ impl ClientBuilder {
     }
   }
 
-  pub fn two_factor(&mut self, value: Box<dyn TwoFactor>) -> &mut Self {
-    self.two_factor = value;
-    self
-  }
-
-  pub fn store(&mut self, value: Box<dyn Store<Error = Error>>) -> &mut Self {
+  pub fn store(&mut self, value: Box<dyn Store<Error = SyncError>>) -> &mut Self {
     self.store = value;
     self
   }
@@ -167,31 +143,29 @@ impl ClientBuilder {
 
   pub async fn build(&mut self) -> Result<Client, Error> {
     if self.username.is_none() {
-      return Err("username must be set".into());
+      return Err(Error::UsernameNotSet);
     }
 
     if self.password.is_none() {
-      return Err("password must be set".into());
+      return Err(Error::PasswordNotSet);
     }
 
     if self.device_name.is_none() {
-      return Err("device_name must be set".into());
+      return Err(Error::DeviceNameNotSet);
     }
 
     let mut h = HeaderMap::new();
-    h.insert(header::ACCEPT, "*/*".parse()?);
-    h.insert(header::USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36".parse()?);
-    h.insert("adrum", "isAjax:true".parse()?);
-    h.insert(header::ACCEPT_LANGUAGE, "en-US,en;q=0.9".parse()?);
-    h.insert("authority", "home.personalcapital.com".parse()?);
-    h.insert(header::ORIGIN, "https://home.personalcapital.com".parse()?);
+    h.insert(header::ACCEPT, "*/*".parse().unwrap());
+    h.insert(header::USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36".parse().unwrap());
+    h.insert("adrum", "isAjax:true".parse().unwrap());
+    h.insert(header::ACCEPT_LANGUAGE, "en-US,en;q=0.9".parse().unwrap());
+    h.insert("authority", "home.personalcapital.com".parse().unwrap());
+    h.insert(header::ORIGIN, BASE_URL.parse().unwrap());
 
     let client = reqwest::Client::builder().default_headers(h).build()?;
 
     // Is there a better way to do this?
-    let mut tf: Box<dyn TwoFactor> = Box::new(DefaultTwoFactor);
-    ::std::mem::swap(&mut self.two_factor, &mut tf);
-    let mut store: Box<dyn Store<Error = Error>> = Box::new(DefaultStore);
+    let mut store: Box<dyn Store<Error = SyncError>> = Box::new(DefaultStore);
     ::std::mem::swap(&mut self.store, &mut store);
 
     let cookie_store = if let Some(cookies) = store.load_cookies().await? {
@@ -205,7 +179,6 @@ impl ClientBuilder {
       csrf: String::new(),
       auth_level: types::AuthLevel::Null,
       cookie_store,
-      two_factor: tf,
       store,
       username: self.username.take().unwrap(),
       password: self.password.take().unwrap(),
@@ -219,8 +192,7 @@ pub struct Client {
   csrf: String,
   auth_level: types::AuthLevel,
   cookie_store: CookieStore,
-  two_factor: Box<dyn TwoFactor>,
-  store: Box<dyn Store<Error = Error>>,
+  store: Box<dyn Store<Error = SyncError>>,
   username: String,
   password: String,
   device_name: String,
@@ -234,6 +206,12 @@ impl Client {
   ) -> Result<(), Error> {
     for hv in headers.get_all("set-cookie").iter() {
       if let Ok(s) = hv.to_str() {
+        // Don't set CloudFlare cookies, since they expire the second you retrieve them
+        // and they cause the cookie store to throw an error.
+        if s.contains("__cfduid") || s.contains("__cflb") {
+          continue;
+        }
+
         self.cookie_store.parse(s, &url)?;
       }
     }
@@ -295,13 +273,13 @@ impl Client {
       msg.push_str(&errors[0].message);
       if let Some(details) = &errors[0].details {
         msg.push_str(" ");
-        msg.push_str(&serde_json::to_string(&details)?);
+        msg.push_str(&serde_json::to_string(&details).unwrap());
       }
-      return Err(msg.into());
+      return Err(Error::PersonalCapital(msg.into()));
     }
 
     let payload = json.sp_data.get();
-    serde_json::from_str(payload).map_err(|e| format!("{} -> {}", e, payload).into())
+    serde_json::from_str(payload).map_err(|e| Error::SerdeJson(e))
   }
 
   async fn get_csrf(&mut self) -> Result<(), Error> {
@@ -323,7 +301,7 @@ impl Client {
       }
     }
 
-    Err("unable to get CSRF token".into())
+    Err(Error::CrsfToken)
   }
 
   async fn identify_user(&mut self) -> Result<(), Error> {
@@ -343,67 +321,72 @@ impl Client {
     let json: types::IdentifyUser = self.request_json(req).await?;
 
     if json.user_status == types::Status::Inactive {
-      return Err(format!("the username \"{}\" is inactive", self.username).into());
+      return Err(Error::InactiveUser(self.username.clone()));
     }
 
     Ok(())
   }
 
-  async fn two_factor_auth(&mut self) -> Result<(), Error> {
+  pub async fn two_factor_challenge(&mut self) -> Result<(), Error> {
     if self.auth_level == types::AuthLevel::UserRemembered {
       return Ok(());
     }
 
-    let (challenge_url, auth_url, auth_type) = if true {
-      (
-        format!("{}{}", BASE_URL, CHALLENGE_EMAIL),
-        format!("{}{}", BASE_URL, AUTHENTICATE_EMAIL),
-        "2",
-      )
-    } else {
-      (
-        format!("{}{}", BASE_URL, CHALLENGE_SMS),
-        format!("{}{}", BASE_URL, AUTHENTICATE_SMS),
-        "0",
-      )
+    if self.auth_level != types::AuthLevel::UserIdentified {
+      return Err(Error::CallLogin);
+    }
+
+    let challenge_url = format!("{}{}", BASE_URL, CHALLENGE_EMAIL);
+    let challenge_type = CHALLENGE_TYPE_EMAIL;
+
+    let mut params = HashMap::new();
+    params.insert("csrf", self.csrf.clone());
+    params.insert("bindDevice", "false".into());
+    params.insert("challengeReason", "DEVICE_AUTH".into());
+    params.insert("challengeMethod", "OP".into());
+    params.insert("challengeType", challenge_type.into());
+
+    let req = self.client.post(&challenge_url).form(&params).build()?;
+    self.request_json(req).await?;
+
+    Ok(())
+  }
+
+  pub async fn two_factor_auth(&mut self, code: &str) -> Result<(), Error> {
+    let auth_url = format!("{}{}", BASE_URL, AUTHENTICATE_EMAIL);
+
+    if self.auth_level != types::AuthLevel::UserIdentified {
+      return Err(Error::CallLogin);
+    }
+
+    let mut params = HashMap::new();
+    params.insert("csrf", self.csrf.clone());
+    params.insert("bindDevice", "false".into());
+    params.insert("challengeReason", "DEVICE_AUTH".into());
+    params.insert("challengeMethod", "OP".into());
+    params.insert("code", code.into());
+
+    let req = self.client.post(&auth_url).form(&params).build()?;
+    match self.request_json(req).await {
+      Ok(()) => {
+        // TODO: possibly set state here
+      }
+      Err(e) => {
+        // TODO: possibly set state here
+        return Err(e);
+      }
     };
 
-    if self.two_factor.should_challenge().await {
-      let mut params = HashMap::new();
-      params.insert("csrf", self.csrf.clone());
-      params.insert("bindDevice", "false".into());
-      params.insert("challengeReason", "DEVICE_AUTH".into());
-      params.insert("challengeMethod", "OP".into());
-      params.insert("challengeType", auth_type.into());
-
-      let req = self.client.post(&challenge_url).form(&params).build()?;
-      self.request_json(req).await?;
-    }
-
-    if let Some(code) = self.two_factor.get_code().await {
-      let mut params = HashMap::new();
-      params.insert("csrf", self.csrf.clone());
-      params.insert("bindDevice", "false".into());
-      params.insert("challengeReason", "DEVICE_AUTH".into());
-      params.insert("challengeMethod", "OP".into());
-      params.insert("code", code.into());
-
-      let req = self.client.post(&auth_url).form(&params).build()?;
-      match self.request_json(req).await {
-        Ok(()) => {
-          self.two_factor.set_status(true).await;
-        }
-        Err(e) => {
-          self.two_factor.set_status(false).await;
-          return Err(e);
-        }
-      };
-    }
-
-    return Ok(());
+    Ok(())
   }
 
   async fn auth_password(&mut self) -> Result<(), Error> {
+    if self.auth_level != types::AuthLevel::DeviceAuthorized
+      && self.auth_level != types::AuthLevel::UserRemembered
+    {
+      return Err(Error::TwoFactorRequired);
+    }
+
     let url = format!("{}{}", BASE_URL, AUTHENTICATE_PASSWORD);
 
     let mut params = HashMap::new();
@@ -419,10 +402,21 @@ impl Client {
       .request_json::<types::AuthenticatePassword>(req)
       .await?;
 
-    Ok(())
+    match self.auth_level {
+      types::AuthLevel::SessionAuthenticated | types::AuthLevel::UserRemembered => Ok(()),
+      types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
+      types::AuthLevel::None => Err(Error::LoginFailed),
+      _ => Err(Error::Other(
+        format!(
+          "unknown auth level state at end of auth(): {:?}",
+          self.auth_level
+        )
+        .into(),
+      )),
+    }
   }
 
-  pub async fn auth(&mut self) -> Result<(), Error> {
+  pub async fn login(&mut self) -> Result<(), Error> {
     if self.auth_level == types::AuthLevel::SessionAuthenticated {
       return Ok(());
     }
@@ -432,29 +426,9 @@ impl Client {
     }
 
     self.identify_user().await?;
+    self.auth_password().await?;
 
-    if self.auth_level == types::AuthLevel::UserIdentified {
-      self.two_factor_auth().await?;
-    }
-
-    if self.auth_level == types::AuthLevel::DeviceAuthorized
-      || self.auth_level == types::AuthLevel::UserRemembered
-    {
-      self.auth_password().await?;
-    }
-
-    match self.auth_level {
-      types::AuthLevel::SessionAuthenticated => Ok(()),
-      types::AuthLevel::UserIdentified => Err("awaiting challenge code".into()),
-      types::AuthLevel::None => Err("could not auth".into()),
-      _ => Err(
-        format!(
-          "unknown auth level state at end of auth(): {:?}",
-          self.auth_level
-        )
-        .into(),
-      ),
-    }
+    Ok(())
   }
 
   pub async fn user_transactions<S: Into<String>>(
