@@ -49,6 +49,8 @@ pub enum Error {
   LoginFailed,
   #[error("call login() first")]
   CallLogin,
+  #[error("session expired")]
+  SessionExpired,
   #[error("username not set")]
   UsernameNotSet,
   #[error("password not set")]
@@ -63,7 +65,7 @@ pub enum Error {
   Reqwest(#[from] reqwest::Error),
   #[error("cookie store error")]
   CookieStore(#[from] cookie_store::CookieError),
-  #[error("personal capital error")]
+  #[error("personal capital error: {0}")]
   PersonalCapital(String),
   #[error("serde_json error")]
   SerdeJson(#[from] serde_json::error::Error),
@@ -162,7 +164,23 @@ impl ClientBuilder {
     h.insert("authority", "home.personalcapital.com".parse().unwrap());
     h.insert(header::ORIGIN, BASE_URL.parse().unwrap());
 
-    let client = reqwest::Client::builder().default_headers(h).build()?;
+    // let p = reqwest::redirect::Policy::custom(|attempt| {
+    //   if attempt.previous().len() > 5 {
+    //     attempt.error("too many redirects")
+    //   } else if attempt.url().host_str() == Some("home.personalcapital.com") {
+    //     // This will happen when you try to authenticate with a previous session cookie
+    //     // and the session has expired. Normally you think it'd return JSON to tell you
+    //     // it's expired but Personal Capital decides to take a POST request and turn it
+    //     // into a homepage redirect.
+    //     attempt.error(Error::SessionExpired)
+    //   } else {
+    //     attempt.follow()
+    //   }
+    // });
+    let client = reqwest::Client::builder()
+      .default_headers(h)
+      // .redirect(p)
+      .build()?;
 
     // Is there a better way to do this?
     let mut store: Box<dyn Store<Error = SyncError>> = Box::new(DefaultStore);
@@ -259,8 +277,23 @@ impl Client {
   where
     T: serde::de::DeserializeOwned,
   {
-    let res = self.request(req).await?;
-    let json: types::Response = res.json().await?;
+    let res = match self.request(req).await {
+      Ok(v) => v,
+      Err(Error::Reqwest(e)) => {
+        if let Some(v) = e.source() {
+          if let Some(Error::SessionExpired) = v.downcast_ref() {
+            return Err(Error::SessionExpired);
+          }
+        }
+        return Err(Error::Reqwest(e));
+      }
+      Err(e) => {
+        return Err(e);
+      }
+    };
+
+    let text = res.text().await?;
+    let json: types::Response = serde_json::from_str(&text)?;
 
     if let Some(csrf) = json.sp_header.csrf {
       self.csrf = csrf.clone();
@@ -380,7 +413,7 @@ impl Client {
     Ok(())
   }
 
-  async fn auth_password(&mut self) -> Result<(), Error> {
+  pub async fn auth_password(&mut self) -> Result<(), Error> {
     if self.auth_level != types::AuthLevel::DeviceAuthorized
       && self.auth_level != types::AuthLevel::UserRemembered
     {
