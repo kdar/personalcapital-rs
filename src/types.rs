@@ -214,7 +214,7 @@ pub struct IdentifyUser {
   pub all_credentials: Vec<Credential>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub enum Status {
   #[serde(rename = "ACTIVE")]
   Active,
@@ -226,7 +226,7 @@ pub enum Status {
   None,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum InvestmentType {
   Dividend,
   Transfer,
@@ -234,13 +234,13 @@ pub enum InvestmentType {
   Sell,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum ResultType {
   #[serde(rename = "aggregated")]
   Aggregated,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum TransactionStatus {
   #[serde(rename = "posted")]
   Posted,
@@ -248,7 +248,7 @@ pub enum TransactionStatus {
   Pending,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum TransactionType {
   Buy,
   #[serde(rename = "Cash In")]
@@ -281,7 +281,7 @@ pub enum TransactionType {
   Other,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
 pub enum AuthLevel {
   Null, // initial state
   Csrf, // fake auth level signifying we got the csrf token
@@ -616,7 +616,7 @@ pub struct NextAction {
   pub aggregation_error_type: AggregationErrorType,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum AccountTypeNew {
   #[serde(rename = "")]
   None,
@@ -650,7 +650,7 @@ impl Default for AccountTypeNew {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum AccountTypeSubtype {
   #[serde(rename = "")]
   None,
@@ -666,12 +666,12 @@ impl Default for AccountTypeSubtype {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum AmountDue {
   NaN,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Currency {
   #[serde(rename = "")]
   Empty,
@@ -679,7 +679,7 @@ pub enum Currency {
   Usd,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Id {
   #[serde(rename = "LOGIN")]
   Login,
@@ -695,13 +695,13 @@ pub enum Id {
   OpOption,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Mask {
   #[serde(rename = "LOGIN_FIELD")]
   LoginField,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum PartType {
   #[serde(rename = "PASSWORD")]
   Password,
@@ -711,13 +711,13 @@ pub enum PartType {
   Options,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum MfaType {
   #[serde(rename = "SECURITY_QUESTION")]
   SecurityQuestion,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Action {
   #[serde(rename = "NONE")]
   None,
@@ -743,7 +743,7 @@ pub enum Action {
   MoreInfo,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum AggregationErrorType {
   #[serde(rename = "NO_ERROR")]
   NoError,
@@ -765,7 +765,7 @@ pub enum AggregationErrorType {
   PasswordOrQuestionsIncorrect,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum ProductType {
   #[serde(rename = "BANK")]
   Bank,
@@ -779,7 +779,7 @@ pub enum ProductType {
   OtherAssets,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum RoutingNumberSource {
   #[serde(rename = "YODLEE_AGGREGATION")]
   YodleeAggregation,
@@ -806,7 +806,7 @@ pub struct Category {
   pub transaction_category_key: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum CategoryType {
   #[serde(rename = "EXPENSE")]
   Expense,
