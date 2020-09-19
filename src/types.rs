@@ -18,6 +18,10 @@ pub struct SpHeader {
   pub sp_header_version: i64,
   #[serde(rename = "userStage")]
   pub user_stage: Option<String>,
+  #[serde(rename = "isDelegate")]
+  pub is_delegate: Option<bool>,
+  #[serde(rename = "SP_DATA_CHANGES")]
+  pub sp_data_changes: Option<Vec<SpDataChange>>,
   #[serde(rename = "betaTester")]
   pub beta_tester: Option<bool>,
   #[serde(rename = "accountsMetaData")]
@@ -38,6 +42,30 @@ pub struct SpHeader {
   pub device_name: Option<String>,
   pub csrf: Option<String>,
   pub errors: Option<Vec<Error>>,
+  #[serde(rename = "personId")]
+  pub person_id: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SpDataChange {
+  #[serde(rename = "serverChangeId")]
+  pub server_change_id: i64,
+  #[serde(rename = "details")]
+  pub details: Details,
+  #[serde(rename = "eventType")]
+  pub event_type: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Details {
+  #[serde(rename = "id")]
+  pub id: Option<i64>,
+  pub cause: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct QuerySession {
+  pub interval: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
