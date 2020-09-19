@@ -4,6 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use std::io::Write;
 use std::{collections::HashMap, error::Error as StdError};
 
 use async_trait::async_trait;
@@ -21,6 +22,7 @@ pub mod types;
 
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
+const QUERY_SESSION: &str = "/api/login/querySession";
 const CHALLENGE_SMS: &str = "/api/credential/challengeSms";
 const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
 const CHALLENGE_EMAIL: &str = "/api/credential/challengeEmail";
@@ -30,8 +32,6 @@ const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
 const USER_SPENDING: &str = "/api/account/getUserSpending";
 const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
 const CATEGORIES: &str = "/api/transactioncategory/getCategories";
-const CHALLENGE_TYPE_EMAIL: &str = "2";
-const CHALLENGE_TYPE_SMS: &str = "0";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -49,8 +49,8 @@ pub enum Error {
   LoginFailed,
   #[error("call login() first")]
   CallLogin,
-  #[error("session expired")]
-  SessionExpired,
+  #[error("session is invalid")]
+  SessionInvalid,
   #[error("username not set")]
   UsernameNotSet,
   #[error("password not set")]
@@ -158,10 +158,15 @@ impl ClientBuilder {
 
     let mut h = HeaderMap::new();
     h.insert(header::ACCEPT, "*/*".parse().unwrap());
-    h.insert(header::USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36".parse().unwrap());
-    h.insert("adrum", "isAjax:true".parse().unwrap());
-    h.insert(header::ACCEPT_LANGUAGE, "en-US,en;q=0.9".parse().unwrap());
-    h.insert("authority", "home.personalcapital.com".parse().unwrap());
+    h.insert(
+      header::USER_AGENT,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0"
+        .parse()
+        .unwrap(),
+    );
+    h.insert("X-Requested-With", "XMLHttpRequest".parse().unwrap());
+    h.insert(header::ACCEPT_LANGUAGE, "en-US,en;q=0.5 ".parse().unwrap());
+    // h.insert("authority", "home.personalcapital.com".parse().unwrap());
     h.insert(header::ORIGIN, BASE_URL.parse().unwrap());
 
     // let p = reqwest::redirect::Policy::custom(|attempt| {
@@ -179,6 +184,7 @@ impl ClientBuilder {
     // });
     let client = reqwest::Client::builder()
       .default_headers(h)
+      .connection_verbose(true)
       // .redirect(p)
       .build()?;
 
@@ -201,6 +207,7 @@ impl ClientBuilder {
       username: self.username.take().unwrap(),
       password: self.password.take().unwrap(),
       device_name: self.device_name.take().unwrap(),
+      last_server_change_id: -1,
     })
   }
 }
@@ -214,6 +221,7 @@ pub struct Client {
   username: String,
   password: String,
   device_name: String,
+  last_server_change_id: i64,
 }
 
 impl Client {
@@ -222,7 +230,7 @@ impl Client {
     url: reqwest::Url,
     headers: &reqwest::header::HeaderMap,
   ) -> Result<(), Error> {
-    for hv in headers.get_all("set-cookie").iter() {
+    for hv in headers.get_all(header::SET_COOKIE).iter() {
       if let Ok(s) = hv.to_str() {
         // Don't set CloudFlare cookies, since they expire the second you retrieve them
         // and they cause the cookie store to throw an error.
@@ -235,7 +243,13 @@ impl Client {
     }
 
     let mut buf = vec![];
-    self.cookie_store.save_json(&mut buf)?;
+    // We can't use save_json() here because the cookie store will not save non-persistent
+    // cookies. We want to persist all cookies so that we can continue grabbing data after
+    // a restart without having to login again.
+    // self.cookie_store.save_json(&mut buf)?;
+    for cookie in self.cookie_store.iter_any() {
+      writeln!(&mut buf, "{}", serde_json::to_string(&cookie)?);
+    }
     self.store.save_cookies(buf).await?;
 
     Ok(())
@@ -244,12 +258,11 @@ impl Client {
   fn add_cookie_header(&self, headers: &mut reqwest::header::HeaderMap) {
     let header = self
       .cookie_store
-      // .get_request_cookies(url)
       .iter_unexpired()
       .map(|c| {
-        let name = percent_encode(c.name().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
-        let value = percent_encode(c.value().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
-        format!("{}={}", name, value)
+        //let name = percent_encode(c.name().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
+        //let value = percent_encode(c.value().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
+        format!("{}={}", c.name(), c.value())
       })
       .collect::<Vec<_>>()
       .join("; ");
@@ -261,6 +274,10 @@ impl Client {
   }
 
   async fn request(&mut self, mut req: reqwest::Request) -> Result<reqwest::Response, Error> {
+    // println!("\x1b[0;92m{:?} - {:?}\x1b[0;0m", req, self.auth_level);
+    // if let Some(b) = req.body() {
+    //   println!("{:?}", String::from_utf8_lossy(b.as_bytes().unwrap()));
+    // }
     self.add_cookie_header(req.headers_mut());
     let url = req.url().clone();
     let res = self.client.execute(req).await?;
@@ -279,35 +296,60 @@ impl Client {
   {
     let res = match self.request(req).await {
       Ok(v) => v,
-      Err(Error::Reqwest(e)) => {
-        if let Some(v) = e.source() {
-          if let Some(Error::SessionExpired) = v.downcast_ref() {
-            return Err(Error::SessionExpired);
-          }
-        }
-        return Err(Error::Reqwest(e));
-      }
+      // Err(Error::Reqwest(e)) => {
+      //   if let Some(v) = e.source() {
+      //     if let Some(Error::SessionExpired) = v.downcast_ref() {
+      //       return Err(Error::SessionExpired);
+      //     }
+      //   }
+      //   return Err(Error::Reqwest(e));
+      // }
       Err(e) => {
         return Err(e);
       }
     };
 
     let text = res.text().await?;
+    // println!("\x1b[0;34m{}\x1b[0;0m", text);
     let json: types::Response = serde_json::from_str(&text)?;
 
     if let Some(csrf) = json.sp_header.csrf {
       self.csrf = csrf.clone();
     }
 
+    // We just logged out.
+    if self.auth_level == types::AuthLevel::SessionAuthenticated
+      && json.sp_header.auth_level != types::AuthLevel::SessionAuthenticated
+    {
+      return Err(Error::SessionInvalid);
+    }
+
     self.auth_level = json.sp_header.auth_level;
 
+    // if let Some(changes) = json.sp_header.sp_data_changes {
+    //   for change in changes {
+    //     if change.server_change_id > self.last_server_change_id {
+    //       self.last_server_change_id = change.server_change_id;
+    //     }
+    //   }
+    // }
+
+    // if json.sp_header.sp_header_version > self.last_server_change_id {
+    //   self.last_server_change_id = json.sp_header.sp_header_version;
+    // }
+
     if let Some(errors) = json.sp_header.errors {
+      if errors[0].code == 202 {
+        return Err(Error::SessionInvalid);
+      }
+
       let mut msg = String::new();
       msg.push_str(&errors[0].message);
       if let Some(details) = &errors[0].details {
         msg.push_str(" ");
         msg.push_str(&serde_json::to_string(&details).unwrap());
       }
+
       return Err(Error::PersonalCapital(msg.into()));
     }
 
@@ -343,7 +385,7 @@ impl Client {
     let mut params = HashMap::new();
     params.insert("csrf", self.csrf.clone());
     params.insert("bindDevice", "false".into());
-    params.insert("skipLinkAccount", "false".into());
+    params.insert("skipLinkAccount", "true".into());
     params.insert("apiClient", "WEB".into());
     params.insert("username", self.username.clone());
     params.insert("redirectTo", String::new());
@@ -370,14 +412,13 @@ impl Client {
     }
 
     let challenge_url = format!("{}{}", BASE_URL, CHALLENGE_EMAIL);
-    let challenge_type = CHALLENGE_TYPE_EMAIL;
 
     let mut params = HashMap::new();
     params.insert("csrf", self.csrf.clone());
     params.insert("bindDevice", "false".into());
     params.insert("challengeReason", "DEVICE_AUTH".into());
     params.insert("challengeMethod", "OP".into());
-    params.insert("challengeType", challenge_type.into());
+    params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&challenge_url).form(&params).build()?;
     self.request_json(req).await?;
@@ -398,6 +439,7 @@ impl Client {
     params.insert("challengeReason", "DEVICE_AUTH".into());
     params.insert("challengeMethod", "OP".into());
     params.insert("code", code.into());
+    params.insert("apiClient", "WEB".into());
 
     let req = self.client.post(&auth_url).form(&params).build()?;
     match self.request_json(req).await {
@@ -414,8 +456,8 @@ impl Client {
   }
 
   pub async fn auth_password(&mut self) -> Result<(), Error> {
-    if self.auth_level != types::AuthLevel::DeviceAuthorized
-      && self.auth_level != types::AuthLevel::UserRemembered
+    if self.auth_level != types::AuthLevel::UserRemembered
+      && self.auth_level != types::AuthLevel::DeviceAuthorized
     {
       return Err(Error::TwoFactorRequired);
     }
@@ -429,6 +471,10 @@ impl Client {
     params.insert("passwd", self.password.clone());
     params.insert("deviceName", self.device_name.clone());
     params.insert("apiClient", "WEB".into());
+    params.insert("redirectTo", String::new());
+    params.insert("skipFirstUse", String::new());
+    params.insert("referrerId", String::new());
+    params.insert("username", self.username.clone().into());
 
     let req = self.client.post(&url).form(&params).build()?;
     self
@@ -476,7 +522,10 @@ impl Client {
     params.insert("apiClient", "WEB".into());
     params.insert("startDate", start_date.into());
     params.insert("endDate", end_date.into());
-    params.insert("lastServerChangeId", "-1".into());
+    params.insert(
+      "lastServerChangeId",
+      format!("{}", self.last_server_change_id),
+    );
 
     let req = self.client.post(&url).form(&params).build()?;
     let json = self.request_json(req).await?;
@@ -496,7 +545,10 @@ impl Client {
       ("includeDetails", "true".into()),
       ("includeValues[]", "CURRENT".into()),
       ("includeValues[]", "TARGET".into()),
-      ("lastServerChangeId", "-1".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
     ];
 
     let req = self.client.post(&url).form(&params).build()?;
@@ -511,7 +563,10 @@ impl Client {
     let params = vec![
       ("csrf", self.csrf.clone()),
       ("apiClient", "WEB".into()),
-      ("lastServerChangeId", "-1".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
     ];
 
     let req = self.client.post(&url).form(&params).build()?;
