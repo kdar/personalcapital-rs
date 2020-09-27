@@ -18,6 +18,7 @@ use reqwest::{
 };
 use thiserror::Error;
 
+mod serde_util;
 pub mod types;
 
 const BASE_URL: &str = "https://home.personalcapital.com";

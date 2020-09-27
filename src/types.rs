@@ -1,4 +1,8 @@
+use serde::de::{self, Visitor};
+use serde::Deserialize;
 use serde_json::value::RawValue;
+
+use crate::serde_util::deserialize_f64_option;
 
 fn empty_rawvalue() -> Box<RawValue> {
   serde_json::value::RawValue::from_string("null".into()).unwrap()
@@ -232,6 +236,8 @@ pub enum InvestmentType {
   Transfer,
   Buy,
   Sell,
+  #[serde(rename = "Mgmt Fees")]
+  MgmtFees,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -277,6 +283,14 @@ pub enum TransactionType {
   Contribution401k,
   #[serde(rename = "RollOver Contribution")]
   ContributionRollOver,
+  #[serde(rename = "Adjustment")]
+  Adjustment,
+  #[serde(rename = "Misc Exp")]
+  MiscExp,
+  #[serde(rename = "ACH Out")]
+  ACHOut,
+  #[serde(rename = "Sweep")]
+  Sweep,
   #[serde(rename = "Other")]
   Other,
 }
@@ -316,7 +330,17 @@ pub struct SpendingInterval {
   #[serde(rename = "target")]
   pub target: f64,
   #[serde(rename = "type")]
-  pub interval_type: String,
+  pub interval_type: IntervalType,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum IntervalType {
+  #[serde(rename = "YEAR")]
+  Year,
+  #[serde(rename = "MONTH")]
+  Month,
+  #[serde(rename = "WEEK")]
+  Week,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -392,7 +416,11 @@ pub struct Account {
   pub is_statement_download_eligible: Option<bool>,
   #[serde(rename = "is401KEligible")]
   pub is401_k_eligible: Option<bool>,
-  #[serde(rename = "creditLimit")]
+  #[serde(
+    rename = "creditLimit",
+    default,
+    deserialize_with = "deserialize_f64_option"
+  )]
   pub credit_limit: Option<f64>,
   #[serde(rename = "isAccountUsedInFunding")]
   pub is_account_used_in_funding: bool,
