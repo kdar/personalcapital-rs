@@ -69,6 +69,20 @@ pub enum Error {
   PersonalCapital(String),
   #[error("serde_json error")]
   SerdeJson(#[from] serde_json::error::Error),
+  #[error("serde_json error: {0}; around `{}`", {
+    let v = .1.lines().nth(.0.line()-1).unwrap();
+    let mut start = (.0.column()-1) - 100;
+    if start < 0 {
+      start = 0;
+    }
+    let mut end = (.0.column()-1) + 100;
+    if end >= v.len() {
+      end = v.len()-1;
+    }
+
+    &v[start..end]
+  })]
+  SerdeJsonContext(serde_json::error::Error, String),
   #[error(transparent)]
   Other(#[from] SyncError),
 }
@@ -354,7 +368,7 @@ impl Client {
     }
 
     let payload = json.sp_data.get();
-    serde_json::from_str(payload).map_err(|e| Error::SerdeJson(e))
+    serde_json::from_str(payload).map_err(|e| Error::SerdeJsonContext(e, payload.to_string()))
   }
 
   async fn get_csrf(&mut self) -> Result<(), Error> {
