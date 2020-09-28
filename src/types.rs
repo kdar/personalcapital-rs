@@ -8,7 +8,7 @@ fn empty_rawvalue() -> Box<RawValue> {
   serde_json::value::RawValue::from_string("null".into()).unwrap()
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
   #[serde(rename = "spData", default = "empty_rawvalue")]
   pub sp_data: Box<RawValue>,
@@ -16,7 +16,7 @@ pub struct Response {
   pub sp_header: SpHeader,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpHeader {
   #[serde(rename = "SP_HEADER_VERSION")]
   pub sp_header_version: i64,
@@ -50,7 +50,7 @@ pub struct SpHeader {
   pub person_id: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpDataChange {
   #[serde(rename = "serverChangeId")]
   pub server_change_id: i64,
@@ -60,26 +60,26 @@ pub struct SpDataChange {
   pub event_type: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Details {
   #[serde(rename = "id")]
   pub id: Option<i64>,
   pub cause: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QuerySession {
   pub interval: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
   pub code: i64,
   pub details: Option<ErrorDetails>,
   pub message: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ErrorDetails {
   #[serde(rename = "fieldName")]
   pub field_name: Option<String>,
@@ -87,7 +87,7 @@ pub struct ErrorDetails {
   pub original_value: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AccountsSummary {
   #[serde(rename = "hasCredit")]
   pub has_credit: bool,
@@ -101,20 +101,20 @@ pub struct AccountsSummary {
   pub has_on_us: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthenticatePassword {
   #[serde(rename = "allCredentials")]
   pub all_credentials: Vec<Credential>,
   pub credentials: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Credential {
   pub name: String,
   pub status: Status,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UserTransactions {
   #[serde(rename = "intervalType")]
   pub interval_type: Option<String>,
@@ -135,7 +135,7 @@ pub struct UserTransactions {
   pub average_in: Option<f64>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
   #[serde(rename = "isInterest")]
   pub is_interest: bool,
@@ -209,7 +209,7 @@ pub struct Transaction {
   pub original_category_id: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IdentifyUser {
   #[serde(rename = "userStatus")]
   pub user_status: Status,
@@ -313,13 +313,13 @@ pub enum AuthLevel {
   None,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserSpending {
   #[serde(rename = "intervals")]
   pub intervals: Vec<SpendingInterval>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SpendingInterval {
   #[serde(rename = "average")]
   pub average: Option<f64>,
@@ -333,7 +333,7 @@ pub struct SpendingInterval {
   pub interval_type: IntervalType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum IntervalType {
   #[serde(rename = "YEAR")]
   Year,
@@ -343,7 +343,7 @@ pub enum IntervalType {
   Week,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SpendingDetail {
   #[serde(rename = "amount")]
   pub amount: f64,
@@ -351,7 +351,7 @@ pub struct SpendingDetail {
   pub date: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Accounts {
   #[serde(rename = "creditCardAccountsTotal")]
   pub credit_card_accounts_total: f64,
@@ -373,7 +373,7 @@ pub struct Accounts {
   pub other_asset_accounts_total: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Account {
   #[serde(rename = "isOnUs")]
   pub is_on_us: bool,
@@ -596,14 +596,14 @@ pub struct Account {
   pub disbursement_type: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContactInfo {
   pub url: Option<String>,
   pub phone: Option<String>,
   pub email: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginField {
   #[serde(rename = "isUsername")]
   pub is_username: Option<bool>,
@@ -616,7 +616,7 @@ pub struct LoginField {
   pub is_password: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginPart {
   pub size: i64,
   pub name: String,
@@ -628,7 +628,7 @@ pub struct LoginPart {
   pub mask: Option<Mask>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NextAction {
   #[serde(rename = "nextActionMessage")]
   pub next_action_message: Option<String>,
@@ -815,7 +815,7 @@ pub enum RoutingNumberSource {
 
 pub type Categories = Vec<Category>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Category {
   #[serde(rename = "isEditable")]
   pub is_editable: bool,
