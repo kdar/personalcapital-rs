@@ -3,7 +3,6 @@ use serde::de::Error;
 use serde::de::Visitor;
 use std::fmt::Formatter;
 use std::fmt::Result as FResult;
-use url::Url;
 
 struct F64;
 

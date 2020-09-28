@@ -10,7 +10,6 @@ use std::{collections::HashMap, error::Error as StdError};
 use async_trait::async_trait;
 use cookie_store::CookieStore;
 use lazy_static::lazy_static;
-use percent_encoding::percent_encode;
 use regex::Regex;
 use reqwest::{
   self,
@@ -24,8 +23,8 @@ pub mod types;
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
 const QUERY_SESSION: &str = "/api/login/querySession";
-const CHALLENGE_SMS: &str = "/api/credential/challengeSms";
-const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
+//const CHALLENGE_SMS: &str = "/api/credential/challengeSms";
+//const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
 const CHALLENGE_EMAIL: &str = "/api/credential/challengeEmail";
 const AUTHENTICATE_EMAIL: &str = "/api/credential/authenticateEmailByCode";
 const AUTHENTICATE_PASSWORD: &str = "/api/credential/authenticatePassword";
@@ -72,10 +71,10 @@ pub enum Error {
   SerdeJson(#[from] serde_json::error::Error),
   #[error("serde_json error: {0}; around `{}`", {
     let v = .1.lines().nth(.0.line()-1).unwrap();
-    let mut start = (.0.column()-1) - 100;
-    if start < 0 {
-      start = 0;
-    }
+    let start = (.0.column()-1) - 100;
+    // if start < 0 {
+    //   start = 0;
+    // }
     let mut end = (.0.column()-1) + 100;
     if end >= v.len() {
       end = v.len()-1;
@@ -263,7 +262,7 @@ impl Client {
     // a restart without having to login again.
     // self.cookie_store.save_json(&mut buf)?;
     for cookie in self.cookie_store.iter_any() {
-      writeln!(&mut buf, "{}", serde_json::to_string(&cookie)?);
+      writeln!(&mut buf, "{}", serde_json::to_string(&cookie)?).unwrap();
     }
     self.store.save_cookies(buf).await?;
 
