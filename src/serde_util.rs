@@ -1,8 +1,5 @@
-use serde::de::Deserializer;
-use serde::de::Error;
-use serde::de::Visitor;
-use std::fmt::Formatter;
-use std::fmt::Result as FResult;
+use serde::de::{Deserializer, Error, Visitor};
+use std::fmt::{Formatter, Result as FResult};
 
 struct F64;
 

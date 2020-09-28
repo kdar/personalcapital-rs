@@ -4,8 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use std::io::Write;
-use std::{collections::HashMap, error::Error as StdError};
+use std::{collections::HashMap, error::Error as StdError, io::Write};
 
 use async_trait::async_trait;
 use cookie_store::CookieStore;
@@ -23,8 +22,8 @@ pub mod types;
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
 const QUERY_SESSION: &str = "/api/login/querySession";
-//const CHALLENGE_SMS: &str = "/api/credential/challengeSms";
-//const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
+// const CHALLENGE_SMS: &str = "/api/credential/challengeSms";
+// const AUTHENTICATE_SMS: &str = "/api/credential/authenticateSmsByCode";
 const CHALLENGE_EMAIL: &str = "/api/credential/challengeEmail";
 const AUTHENTICATE_EMAIL: &str = "/api/credential/authenticateEmailByCode";
 const AUTHENTICATE_PASSWORD: &str = "/api/credential/authenticatePassword";
@@ -187,10 +186,10 @@ impl ClientBuilder {
     //   if attempt.previous().len() > 5 {
     //     attempt.error("too many redirects")
     //   } else if attempt.url().host_str() == Some("home.personalcapital.com") {
-    //     // This will happen when you try to authenticate with a previous session cookie
-    //     // and the session has expired. Normally you think it'd return JSON to tell you
-    //     // it's expired but Personal Capital decides to take a POST request and turn it
-    //     // into a homepage redirect.
+    //     // This will happen when you try to authenticate with a previous session
+    // cookie     // and the session has expired. Normally you think it'd return
+    // JSON to tell you     // it's expired but Personal Capital decides to take
+    // a POST request and turn it     // into a homepage redirect.
     //     attempt.error(Error::SessionExpired)
     //   } else {
     //     attempt.follow()
@@ -257,9 +256,9 @@ impl Client {
     }
 
     let mut buf = vec![];
-    // We can't use save_json() here because the cookie store will not save non-persistent
-    // cookies. We want to persist all cookies so that we can continue grabbing data after
-    // a restart without having to login again.
+    // We can't use save_json() here because the cookie store will not save
+    // non-persistent cookies. We want to persist all cookies so that we can
+    // continue grabbing data after a restart without having to login again.
     // self.cookie_store.save_json(&mut buf)?;
     for cookie in self.cookie_store.iter_any() {
       writeln!(&mut buf, "{}", serde_json::to_string(&cookie)?).unwrap();
@@ -274,8 +273,9 @@ impl Client {
       .cookie_store
       .iter_unexpired()
       .map(|c| {
-        //let name = percent_encode(c.name().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
-        //let value = percent_encode(c.value().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
+        // let name = percent_encode(c.name().as_bytes(),
+        // percent_encoding::NON_ALPHANUMERIC); let value =
+        // percent_encode(c.value().as_bytes(), percent_encoding::NON_ALPHANUMERIC);
         format!("{}={}", c.name(), c.value())
       })
       .collect::<Vec<_>>()
@@ -320,7 +320,7 @@ impl Client {
       // }
       Err(e) => {
         return Err(e);
-      }
+      },
     };
 
     let text = res.text().await?;
@@ -459,11 +459,11 @@ impl Client {
     match self.request_json(req).await {
       Ok(()) => {
         // TODO: possibly set state here
-      }
+      },
       Err(e) => {
         // TODO: possibly set state here
         return Err(e);
-      }
+      },
     };
 
     Ok(())
@@ -499,13 +499,15 @@ impl Client {
       types::AuthLevel::SessionAuthenticated | types::AuthLevel::UserRemembered => Ok(()),
       types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
       types::AuthLevel::None => Err(Error::LoginFailed),
-      _ => Err(Error::Other(
-        format!(
-          "unknown auth level state at end of auth(): {:?}",
-          self.auth_level
-        )
-        .into(),
-      )),
+      _ => {
+        Err(Error::Other(
+          format!(
+            "unknown auth level state at end of auth(): {:?}",
+            self.auth_level
+          )
+          .into(),
+        ))
+      },
     }
   }
 
