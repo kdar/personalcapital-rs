@@ -1,3 +1,4 @@
+use chrono;
 use serde::Deserialize;
 use serde_json::value::RawValue;
 
@@ -118,7 +119,7 @@ pub struct UserTransactions {
   #[serde(rename = "intervalType")]
   pub interval_type: Option<String>,
   #[serde(rename = "endDate")]
-  pub end_date: String,
+  pub end_date: chrono::NaiveDate,
   #[serde(rename = "moneyIn")]
   pub money_in: Option<f64>,
   pub transactions: Option<Vec<Transaction>>,
@@ -129,7 +130,7 @@ pub struct UserTransactions {
   #[serde(rename = "moneyOut")]
   pub money_out: Option<f64>,
   #[serde(rename = "startDate")]
-  pub start_date: String,
+  pub start_date: chrono::NaiveDate,
   #[serde(rename = "averageIn")]
   pub average_in: Option<f64>,
 }
@@ -176,7 +177,7 @@ pub struct Transaction {
   #[serde(rename = "isCashIn")]
   pub is_cash_in: bool,
   #[serde(rename = "transactionDate")]
-  pub transaction_date: String,
+  pub transaction_date: chrono::NaiveDate,
   #[serde(rename = "transactionType")]
   pub transaction_type: TransactionType,
   #[serde(rename = "accountId")]
@@ -237,6 +238,7 @@ pub enum InvestmentType {
   Sell,
   #[serde(rename = "Mgmt Fees")]
   MgmtFees,
+  Interest,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -290,6 +292,8 @@ pub enum TransactionType {
   ACHOut,
   #[serde(rename = "Sweep")]
   Sweep,
+  #[serde(rename = "Interest Income")]
+  InterestIncome,
   #[serde(rename = "Other")]
   Other,
 }
@@ -347,7 +351,7 @@ pub struct SpendingDetail {
   #[serde(rename = "amount")]
   pub amount: f64,
   #[serde(rename = "date")]
-  pub date: String,
+  pub date: chrono::NaiveDate,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -470,7 +474,7 @@ pub struct Account {
   #[serde(rename = "isSelectedForTransfer")]
   pub is_selected_for_transfer: Option<bool>,
   #[serde(rename = "oldestTransactionDate")]
-  pub oldest_transaction_date: Option<String>,
+  pub oldest_transaction_date: Option<chrono::NaiveDate>,
   #[serde(rename = "isOnUsBank")]
   pub is_on_us_bank: bool,
   #[serde(rename = "accountName")]
