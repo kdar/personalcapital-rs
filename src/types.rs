@@ -294,6 +294,8 @@ pub enum TransactionType {
   Sweep,
   #[serde(rename = "Interest Income")]
   InterestIncome,
+  #[serde(rename = "RolloverToQual")]
+  RolloverToQual,
   #[serde(rename = "Other")]
   Other,
 }
@@ -457,7 +459,7 @@ pub struct Account {
   #[serde(rename = "accountId")]
   pub account_id: String,
   #[serde(rename = "homeUrl")]
-  pub home_url: String,
+  pub home_url: Option<String>,
   #[serde(rename = "isManualPortfolio")]
   pub is_manual_portfolio: bool,
   #[serde(rename = "excludeFromProposal")]
@@ -639,7 +641,7 @@ pub struct NextAction {
   pub icon_type: Option<Action>,
   pub action: Option<Action>,
   #[serde(rename = "reportAction")]
-  pub report_action: Action,
+  pub report_action: Option<Action>,
   #[serde(rename = "statusMessage")]
   pub status_message: Option<String>,
   pub prompts: Vec<Option<serde_json::Value>>,
