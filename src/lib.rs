@@ -31,6 +31,7 @@ const USER_TRANSACTIONS: &str = "/api/transaction/getUserTransactions";
 const USER_SPENDING: &str = "/api/account/getUserSpending";
 const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
 const CATEGORIES: &str = "/api/transactioncategory/getCategories";
+const HOLDINGS: &str = "/api/invest/getHoldings";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -58,6 +59,8 @@ pub enum Error {
   DeviceNameNotSet,
   #[error("unable to get CSRF token")]
   CrsfToken,
+  #[error("account IDs are empty")]
+  AccountIDsEmpty,
   #[error("username {0} is inactive")]
   InactiveUser(String),
   #[error("reqwest error")]
@@ -618,6 +621,57 @@ impl Client {
       (
         "lastServerChangeId",
         format!("{}", self.last_server_change_id),
+      ),
+    ];
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req).await?;
+
+    Ok(json)
+  }
+
+  pub async fn holdings(
+    &mut self,
+    classifications: Option<&[&str]>,
+    account_ids: Option<&[i64]>,
+  ) -> Result<types::Holdings, Error> {
+    let url = format!("{}{}", BASE_URL, HOLDINGS);
+
+    let params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
+      (
+        "classificationStyles",
+        format!(
+          "[{}]",
+          classifications
+            .map(|v| {
+              v.iter()
+                .skip(1)
+                .fold(format!("\"{}\"", v[0]), |a, b| format!("{},\"{}\"", a, b))
+            })
+            .unwrap_or_else(|| String::from("\"none\""))
+        )
+        .into(),
+      ),
+      ("consolidateMultipleAccounts", "true".into()),
+      (
+        "userAccountIds",
+        format!(
+          "[{}]",
+          account_ids
+            .map(|v| {
+              v.iter()
+                .skip(1)
+                .fold(format!("{}", v[0]), |a, b| format!("{},{}", a, b))
+            })
+            .unwrap_or_else(|| String::new())
+        )
+        .into(),
       ),
     ];
 

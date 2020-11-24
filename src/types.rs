@@ -850,3 +850,147 @@ pub enum CategoryType {
   #[serde(rename = "UNCATEGORIZED")]
   Uncategorized,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Holdings {
+  #[serde(rename = "classifications")]
+  pub classifications: Vec<Option<serde_json::Value>>,
+  #[serde(rename = "holdings")]
+  pub holdings: Vec<Holding>,
+  #[serde(rename = "holdingsTotalValue")]
+  pub holdings_total_value: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Holding {
+  #[serde(rename = "quantity")]
+  pub quantity: f64,
+  #[serde(rename = "manualClassification")]
+  pub manual_classification: ManualClassification,
+  #[serde(rename = "isMarketMover")]
+  pub is_market_mover: bool,
+  #[serde(rename = "oneDayPercentChangeSortIndex")]
+  pub one_day_percent_change_sort_index: i64,
+  #[serde(rename = "oneDayValueChange")]
+  pub one_day_value_change: f64,
+  #[serde(rename = "change")]
+  pub change: f64,
+  #[serde(rename = "description")]
+  pub description: Option<String>,
+  #[serde(rename = "source")]
+  pub source: HoldingSource,
+  #[serde(rename = "changeSortIndex")]
+  pub change_sort_index: i64,
+  #[serde(rename = "oneDayValueChangeSortIndex")]
+  pub one_day_value_change_sort_index: i64,
+  #[serde(rename = "marketType")]
+  pub market_type: i64,
+  #[serde(rename = "sourceAssetId")]
+  pub source_asset_id: String,
+  #[serde(rename = "external")]
+  pub external: Option<String>,
+  #[serde(rename = "holdingType")]
+  pub holding_type: HoldingType,
+  #[serde(rename = "price")]
+  pub price: f64,
+  #[serde(rename = "holdingPercentage")]
+  pub holding_percentage: f64,
+  #[serde(rename = "userAccountId")]
+  pub user_account_id: i64,
+  #[serde(rename = "priceSource")]
+  pub price_source: PriceSource,
+  #[serde(rename = "valueSortIndex")]
+  pub value_sort_index: i64,
+  #[serde(rename = "currency")]
+  pub currency: Option<String>,
+  #[serde(rename = "value")]
+  pub value: f64,
+  #[serde(rename = "oneDayPercentChange")]
+  pub one_day_percent_change: f64,
+  #[serde(rename = "originalDescription")]
+  pub original_description: Option<String>,
+  #[serde(rename = "cusip")]
+  pub cusip: Option<String>,
+  #[serde(rename = "accountName")]
+  pub account_name: Option<String>,
+  #[serde(rename = "originalTicker")]
+  pub original_ticker: Option<String>,
+  #[serde(rename = "originalCusip")]
+  pub original_cusip: Option<String>,
+  #[serde(rename = "ticker")]
+  pub ticker: Option<String>,
+  #[serde(rename = "exchange")]
+  pub exchange: Option<Exchange>,
+  #[serde(rename = "tradingRatio")]
+  pub trading_ratio: Option<f64>,
+  #[serde(rename = "type")]
+  pub fund_type: Option<FundType>,
+  #[serde(rename = "taxCost")]
+  pub tax_cost: Option<f64>,
+  #[serde(rename = "fundFees")]
+  pub fund_fees: Option<f64>,
+  #[serde(rename = "feesPerYear")]
+  pub fees_per_year: Option<f64>,
+  #[serde(rename = "costBasis")]
+  pub cost_basis: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum Exchange {
+  #[serde(rename = "NASDAQ")]
+  Nasdaq,
+  #[serde(rename = "NYSE")]
+  Nyse,
+  #[serde(rename = "NYSE Arca")]
+  NyseArca,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum HoldingType {
+  #[serde(rename = "Cash")]
+  Cash,
+  #[serde(rename = "ETF")]
+  Etf,
+  #[serde(rename = "Fund")]
+  Fund,
+  #[serde(rename = "Other")]
+  Other,
+  #[serde(rename = "Stock")]
+  Stock,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum ManualClassification {
+  #[serde(rename = "RESTRICTED")]
+  Restricted,
+  #[serde(rename = "UNCLASSIFIED")]
+  Unclassified,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum PriceSource {
+  #[serde(rename = "MARKET")]
+  Market,
+  #[serde(rename = "PARTNER")]
+  Partner,
+  #[serde(rename = "USER")]
+  User,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum FundType {
+  #[serde(rename = "ETF")]
+  Etf,
+  #[serde(rename = "Mutual Fund")]
+  MutualFund,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub enum HoldingSource {
+  #[serde(rename = "PCAP")]
+  Pcap,
+  #[serde(rename = "USER")]
+  User,
+  #[serde(rename = "YODLEE")]
+  Yodlee,
+}
