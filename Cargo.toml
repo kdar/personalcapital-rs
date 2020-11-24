@@ -22,3 +22,6 @@ tokio = {version = "0.2.21", features = ["macros", "blocking", "rt-threaded", "s
 
 [[example]]
 name = "investment-type-total"
+
+[[example]]
+name = "simple"

@@ -1,8 +1,10 @@
-use std::env;
-use std::error::Error;
-use std::fs;
-use std::io::{Read, Write};
-use std::path::Path;
+use std::{
+  env,
+  error::Error,
+  fs,
+  io::{Read, Write},
+  path::Path,
+};
 
 use async_trait::async_trait;
 use personalcapital;
@@ -77,7 +79,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     .build()
     .await?;
   client.auth().await?;
-  println!("{:#?}", client.accounts().await?);
+  let accts = client.accounts().await?;
+  println!("{:#?}", accts);
 
   Ok(())
 }
