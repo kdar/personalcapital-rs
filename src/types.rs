@@ -296,6 +296,10 @@ pub enum TransactionType {
   InterestIncome,
   #[serde(rename = "RolloverToQual")]
   RolloverToQual,
+  #[serde(rename = "ST CG Dist")]
+  STCGDist,
+  #[serde(rename = "LT CG Dist")]
+  LTCGDist,
   #[serde(rename = "Other")]
   Other,
 }
@@ -716,6 +720,10 @@ pub enum Currency {
 pub enum Id {
   #[serde(rename = "LOGIN")]
   Login,
+  #[serde(rename = "OP_LOGIN")]
+  OpLogin,
+  #[serde(rename = "OP_LOGIN1")]
+  OpLogin1,
   #[serde(rename = "OP_LOGIN4")]
   OpLogin4,
   #[serde(rename = "PASSWORD")]
