@@ -300,6 +300,10 @@ pub enum TransactionType {
   STCGDist,
   #[serde(rename = "LT CG Dist")]
   LTCGDist,
+  #[serde(rename = "Unknown")]
+  Unknown,
+  #[serde(rename = "Roth Contribution")]
+  RothContribution,
   #[serde(rename = "Other")]
   Other,
 }
