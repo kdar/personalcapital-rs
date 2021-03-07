@@ -794,6 +794,8 @@ pub enum Action {
 pub enum AggregationErrorType {
   #[serde(rename = "NO_ERROR")]
   NoError,
+  #[serde(rename = "ZILLOW_ADDRESS_INTERNAL_ERROR")]
+  ZillowAddressInternalError,
   #[serde(rename = "ZILLOW_ADDRESS_SUCCESS")]
   ZillowAddressSuccess,
   #[serde(rename = "ACCOUNT_NOT_FOUND")]
