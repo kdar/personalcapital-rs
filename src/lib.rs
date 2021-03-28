@@ -682,14 +682,14 @@ impl Client {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
+// #[cfg(test)]
+// mod tests {
+//   use super::*;
 
-  #[test]
-  fn it_works() {
-    env_logger::init();
-    let mut c = ClientBuilder::new().build().unwrap();
-    c.auth().unwrap();
-  }
-}
+//   #[test]
+//   fn it_works() {
+//     env_logger::init();
+//     let mut c = ClientBuilder::new().build().unwrap();
+//     c.auth().unwrap();
+//   }
+// }

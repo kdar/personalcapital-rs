@@ -306,6 +306,8 @@ pub enum TransactionType {
   RothContribution,
   #[serde(rename = "Interest ReInvestment")]
   InterestReInvestment,
+  #[serde(rename = "Return of Capital")]
+  ReturnOfCapital,
   #[serde(rename = "Other")]
   Other,
 }
