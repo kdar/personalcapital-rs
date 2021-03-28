@@ -60,6 +60,17 @@ pub struct SpDataChange {
   pub event_type: String,
 }
 
+pub type Tags = Vec<Tag>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Tag {
+  #[serde(rename = "tagId")]
+  pub tag_id: i64,
+
+  #[serde(rename = "tagName")]
+  pub tag_name: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Details {
   #[serde(rename = "id")]
@@ -183,7 +194,7 @@ pub struct Transaction {
   #[serde(rename = "accountId")]
   pub account_id: String,
   #[serde(rename = "originalAmount")]
-  pub original_amount: f64,
+  pub original_amount: Option<f64>,
   #[serde(rename = "isCost")]
   pub is_cost: bool,
   #[serde(rename = "userAccountId")]
@@ -207,6 +218,17 @@ pub struct Transaction {
   pub cusip_number: Option<String>,
   #[serde(rename = "originalCategoryId")]
   pub original_category_id: Option<i64>,
+  #[serde(rename = "customTags")]
+  custom_tags: Option<CustomTags>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CustomTags {
+  #[serde(rename = "systemTags")]
+  pub system_tags: Vec<i64>,
+
+  #[serde(rename = "userTags")]
+  pub user_tags: Vec<i64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -308,6 +330,10 @@ pub enum TransactionType {
   InterestReInvestment,
   #[serde(rename = "Return of Capital")]
   ReturnOfCapital,
+  #[serde(rename = "Recharacterization")]
+  Recharacterization,
+  #[serde(rename = "Fund Exchange")]
+  FundExchange,
   #[serde(rename = "Other")]
   Other,
 }

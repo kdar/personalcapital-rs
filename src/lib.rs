@@ -32,6 +32,7 @@ const USER_SPENDING: &str = "/api/account/getUserSpending";
 const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
 const CATEGORIES: &str = "/api/transactioncategory/getCategories";
 const HOLDINGS: &str = "/api/invest/getHoldings";
+const TAGS: &str = "/api/transactiontag/getTags";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -614,6 +615,24 @@ impl Client {
 
   pub async fn query_session(&mut self) -> Result<types::QuerySession, Error> {
     let url = format!("{}{}", BASE_URL, QUERY_SESSION);
+
+    let params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
+    ];
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req).await?;
+
+    Ok(json)
+  }
+
+  pub async fn tags(&mut self) -> Result<types::Tags, Error> {
+    let url = format!("{}{}", BASE_URL, TAGS);
 
     let params = vec![
       ("csrf", self.csrf.clone()),
