@@ -33,6 +33,7 @@ const ACCOUNTS: &str = "/api/newaccount/getAccounts2";
 const CATEGORIES: &str = "/api/transactioncategory/getCategories";
 const HOLDINGS: &str = "/api/invest/getHoldings";
 const TAGS: &str = "/api/transactiontag/getTags";
+const UPDATE_USER_TRANSACTIONS: &str = "/api/transaction/updateUserTransactions2";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -693,6 +694,80 @@ impl Client {
         .into(),
       ),
     ];
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req).await?;
+
+    Ok(json)
+  }
+
+  pub async fn update_user_transactions(
+    &mut self,
+    transaction_ids: &[i64],
+    category_id: Option<i64>,
+    description: Option<String>,
+    tags: Option<&[i64]>,
+    duplicate: Option<bool>,
+  ) -> Result<Vec<types::Transaction>, Error> {
+    let url = format!("{}{}", BASE_URL, UPDATE_USER_TRANSACTIONS);
+
+    let mut params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
+      (
+        "userTransactionIds",
+        format!(
+          "[{}]",
+          transaction_ids
+            .iter()
+            .map(|v| format!("{}", v))
+            .fold(String::new(), |mut a, b| {
+              if !a.is_empty() {
+                a.push_str(",");
+              }
+              a.push_str(&b);
+              a
+            })
+        )
+        .into(),
+      ),
+    ];
+
+    if let Some(desc) = description {
+      params.push(("description", desc));
+    }
+
+    if let Some(cat_id) = category_id {
+      params.push(("transactionCategoryId", format!("{}", cat_id)));
+    }
+
+    if let Some(dupe) = duplicate {
+      params.push(("isDuplicate", format!("{}", dupe)));
+    }
+
+    if let Some(tags) = tags {
+      params.push((
+        "customTags",
+        format!(
+          "[{}]",
+          tags
+            .iter()
+            .map(|v| format!("{}", v))
+            .fold(String::new(), |mut a, b| {
+              if !a.is_empty() {
+                a.push_str(",");
+              }
+              a.push_str(&b);
+              a
+            })
+        )
+        .into(),
+      ));
+    }
 
     let req = self.client.post(&url).form(&params).build()?;
     let json = self.request_json(req).await?;
