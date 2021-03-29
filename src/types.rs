@@ -219,7 +219,7 @@ pub struct Transaction {
   #[serde(rename = "originalCategoryId")]
   pub original_category_id: Option<i64>,
   #[serde(rename = "customTags")]
-  custom_tags: Option<CustomTags>,
+  pub custom_tags: Option<CustomTags>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
