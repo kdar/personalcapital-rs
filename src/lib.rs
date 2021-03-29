@@ -16,8 +16,8 @@ use reqwest::{
 };
 use thiserror::Error;
 
+pub mod pc_types;
 mod serde_util;
-pub mod types;
 
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
@@ -124,6 +124,15 @@ impl Store for DefaultStore {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct UpdateUserTransactionsArgs {
+  pub transaction_ids: Vec<i64>,
+  pub category_id: Option<i64>,
+  pub description: Option<String>,
+  pub tags: Option<Vec<i64>>,
+  pub duplicate: Option<bool>,
+}
+
 pub struct ClientBuilder {
   store: Box<dyn Store<Error = SyncError>>,
   username: Option<String>,
@@ -219,7 +228,7 @@ impl ClientBuilder {
     Ok(Client {
       client,
       csrf: String::new(),
-      auth_level: types::AuthLevel::Null,
+      auth_level: pc_types::AuthLevel::Null,
       cookie_store,
       store,
       username: self.username.take().unwrap(),
@@ -233,7 +242,7 @@ impl ClientBuilder {
 pub struct Client {
   client: reqwest::Client,
   csrf: String,
-  auth_level: types::AuthLevel,
+  auth_level: pc_types::AuthLevel,
   cookie_store: CookieStore,
   store: Box<dyn Store<Error = SyncError>>,
   username: String,
@@ -330,15 +339,15 @@ impl Client {
 
     let text = res.text().await?;
     // println!("\x1b[0;34m{}\x1b[0;0m", text);
-    let json: types::Response = serde_json::from_str(&text)?;
+    let json: pc_types::Response = serde_json::from_str(&text)?;
 
     if let Some(csrf) = json.sp_header.csrf {
       self.csrf = csrf.clone();
     }
 
     // We just logged out.
-    if self.auth_level == types::AuthLevel::SessionAuthenticated
-      && json.sp_header.auth_level != types::AuthLevel::SessionAuthenticated
+    if self.auth_level == pc_types::AuthLevel::SessionAuthenticated
+      && json.sp_header.auth_level != pc_types::AuthLevel::SessionAuthenticated
     {
       return Err(Error::SessionInvalid);
     }
@@ -389,7 +398,7 @@ impl Client {
     if let Some(captures) = CSRF_RE.captures(&body) {
       if let Some(csrf) = captures.get(1) {
         self.csrf = csrf.as_str().into();
-        self.auth_level = types::AuthLevel::Csrf;
+        self.auth_level = pc_types::AuthLevel::Csrf;
         self.store.save_csrf(self.csrf.clone()).await?;
         return Ok(());
       }
@@ -412,9 +421,9 @@ impl Client {
     params.insert("referrerId", String::new());
 
     let req = self.client.post(&url).form(&params).build()?;
-    let json: types::IdentifyUser = self.request_json(req).await?;
+    let json: pc_types::IdentifyUser = self.request_json(req).await?;
 
-    if json.user_status == types::Status::Inactive {
+    if json.user_status == pc_types::Status::Inactive {
       return Err(Error::InactiveUser(self.username.clone()));
     }
 
@@ -422,11 +431,11 @@ impl Client {
   }
 
   pub async fn two_factor_challenge(&mut self) -> Result<(), Error> {
-    if self.auth_level == types::AuthLevel::UserRemembered {
+    if self.auth_level == pc_types::AuthLevel::UserRemembered {
       return Ok(());
     }
 
-    if self.auth_level != types::AuthLevel::UserIdentified {
+    if self.auth_level != pc_types::AuthLevel::UserIdentified {
       return Err(Error::CallLogin);
     }
 
@@ -448,7 +457,7 @@ impl Client {
   pub async fn two_factor_auth(&mut self, code: &str) -> Result<(), Error> {
     let auth_url = format!("{}{}", BASE_URL, AUTHENTICATE_EMAIL);
 
-    if self.auth_level != types::AuthLevel::UserIdentified {
+    if self.auth_level != pc_types::AuthLevel::UserIdentified {
       return Err(Error::CallLogin);
     }
 
@@ -475,8 +484,8 @@ impl Client {
   }
 
   pub async fn auth_password(&mut self) -> Result<(), Error> {
-    if self.auth_level != types::AuthLevel::UserRemembered
-      && self.auth_level != types::AuthLevel::DeviceAuthorized
+    if self.auth_level != pc_types::AuthLevel::UserRemembered
+      && self.auth_level != pc_types::AuthLevel::DeviceAuthorized
     {
       return Err(Error::TwoFactorRequired);
     }
@@ -497,13 +506,13 @@ impl Client {
 
     let req = self.client.post(&url).form(&params).build()?;
     self
-      .request_json::<types::AuthenticatePassword>(req)
+      .request_json::<pc_types::AuthenticatePassword>(req)
       .await?;
 
     match self.auth_level {
-      types::AuthLevel::SessionAuthenticated | types::AuthLevel::UserRemembered => Ok(()),
-      types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
-      types::AuthLevel::None => Err(Error::LoginFailed),
+      pc_types::AuthLevel::SessionAuthenticated | pc_types::AuthLevel::UserRemembered => Ok(()),
+      pc_types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
+      pc_types::AuthLevel::None => Err(Error::LoginFailed),
       _ => {
         Err(Error::Other(
           format!(
@@ -517,11 +526,11 @@ impl Client {
   }
 
   pub async fn login(&mut self) -> Result<(), Error> {
-    if self.auth_level == types::AuthLevel::SessionAuthenticated {
+    if self.auth_level == pc_types::AuthLevel::SessionAuthenticated {
       return Ok(());
     }
 
-    if self.auth_level == types::AuthLevel::Null || self.csrf.is_empty() {
+    if self.auth_level == pc_types::AuthLevel::Null || self.csrf.is_empty() {
       self.get_csrf().await?;
     }
 
@@ -535,7 +544,7 @@ impl Client {
     &mut self,
     start_date: S,
     end_date: S,
-  ) -> Result<types::UserTransactions, Error> {
+  ) -> Result<pc_types::UserTransactions, Error> {
     let url = format!("{}{}", BASE_URL, USER_TRANSACTIONS);
 
     let mut params = HashMap::new();
@@ -554,7 +563,7 @@ impl Client {
     Ok(json)
   }
 
-  pub async fn user_spending(&mut self) -> Result<types::UserSpending, Error> {
+  pub async fn user_spending(&mut self) -> Result<pc_types::UserSpending, Error> {
     let url = format!("{}{}", BASE_URL, USER_SPENDING);
 
     let params = vec![
@@ -578,7 +587,7 @@ impl Client {
     Ok(json)
   }
 
-  pub async fn accounts(&mut self) -> Result<types::Accounts, Error> {
+  pub async fn accounts(&mut self) -> Result<pc_types::Accounts, Error> {
     let url = format!("{}{}", BASE_URL, ACCOUNTS);
 
     let params = vec![
@@ -596,7 +605,7 @@ impl Client {
     Ok(json)
   }
 
-  pub async fn categories(&mut self) -> Result<types::Categories, Error> {
+  pub async fn categories(&mut self) -> Result<pc_types::Categories, Error> {
     let url = format!("{}{}", BASE_URL, CATEGORIES);
 
     let params = vec![
@@ -614,7 +623,7 @@ impl Client {
     Ok(json)
   }
 
-  pub async fn query_session(&mut self) -> Result<types::QuerySession, Error> {
+  pub async fn query_session(&mut self) -> Result<pc_types::QuerySession, Error> {
     let url = format!("{}{}", BASE_URL, QUERY_SESSION);
 
     let params = vec![
@@ -632,7 +641,7 @@ impl Client {
     Ok(json)
   }
 
-  pub async fn tags(&mut self) -> Result<types::Tags, Error> {
+  pub async fn tags(&mut self) -> Result<pc_types::Tags, Error> {
     let url = format!("{}{}", BASE_URL, TAGS);
 
     let params = vec![
@@ -654,7 +663,7 @@ impl Client {
     &mut self,
     classifications: Option<&[&str]>,
     account_ids: Option<&[i64]>,
-  ) -> Result<types::Holdings, Error> {
+  ) -> Result<pc_types::Holdings, Error> {
     let url = format!("{}{}", BASE_URL, HOLDINGS);
 
     let params = vec![
@@ -703,12 +712,8 @@ impl Client {
 
   pub async fn update_user_transactions(
     &mut self,
-    transaction_ids: &[i64],
-    category_id: Option<i64>,
-    description: Option<String>,
-    tags: Option<&[i64]>,
-    duplicate: Option<bool>,
-  ) -> Result<Vec<types::Transaction>, Error> {
+    mut args: UpdateUserTransactionsArgs,
+  ) -> Result<Vec<pc_types::Transaction>, Error> {
     let url = format!("{}{}", BASE_URL, UPDATE_USER_TRANSACTIONS);
 
     let mut params = vec![
@@ -722,7 +727,8 @@ impl Client {
         "userTransactionIds",
         format!(
           "[{}]",
-          transaction_ids
+          args
+            .transaction_ids
             .iter()
             .map(|v| format!("{}", v))
             .fold(String::new(), |mut a, b| {
@@ -737,19 +743,19 @@ impl Client {
       ),
     ];
 
-    if let Some(desc) = description {
+    if let Some(desc) = args.description.take() {
       params.push(("description", desc));
     }
 
-    if let Some(cat_id) = category_id {
+    if let Some(cat_id) = args.category_id {
       params.push(("transactionCategoryId", format!("{}", cat_id)));
     }
 
-    if let Some(dupe) = duplicate {
+    if let Some(dupe) = args.duplicate {
       params.push(("isDuplicate", format!("{}", dupe)));
     }
 
-    if let Some(tags) = tags {
+    if let Some(tags) = args.tags {
       params.push((
         "customTags",
         format!(
