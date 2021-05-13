@@ -1,12 +1,12 @@
 use std::fs;
 
-use personalcapital::types;
+use personalcapital::pc_types;
 use serde_json;
 
 fn main() {
-  let json = fs::read_to_string("./.secret/getAccounts2 08-15-2020.json").unwrap();
-  let v: types::Response = serde_json::from_str(&json).unwrap();
-  let v: types::Accounts = serde_json::from_str(v.sp_data.get()).unwrap();
+  let json = fs::read_to_string("./.secret/getAccounts2.json").unwrap();
+  let v: pc_types::Response = serde_json::from_str(&json).unwrap();
+  let v: pc_types::Accounts = serde_json::from_str(v.sp_data.get()).unwrap();
 
   let mut taxable: f64 = 0.0;
   let mut tax_deferred: f64 = 0.0;
@@ -14,26 +14,26 @@ fn main() {
 
   for account in v.accounts {
     if account.product_type.is_none()
-      || account.product_type.unwrap() != types::ProductType::Investment
+      || account.product_type.unwrap() != pc_types::ProductType::Investment
       || account.is_exclude_from_household
     {
       continue;
     }
 
     match (account.account_type_new, account.account_type_subtype) {
-      (types::AccountTypeNew::Investment, types::AccountTypeSubtype::None) => {
+      (pc_types::AccountTypeNew::Investment, pc_types::AccountTypeSubtype::None) => {
         taxable += account.balance.unwrap()
       },
-      (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Roth) => {
+      (pc_types::AccountTypeNew::Ira, pc_types::AccountTypeSubtype::Roth) => {
         tax_free += account.balance.unwrap()
       },
-      (types::AccountTypeNew::Ira, types::AccountTypeSubtype::Traditional) => {
+      (pc_types::AccountTypeNew::Ira, pc_types::AccountTypeSubtype::Traditional) => {
         tax_deferred += account.balance.unwrap()
       },
-      (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Traditional) => {
+      (pc_types::AccountTypeNew::A401k, pc_types::AccountTypeSubtype::Traditional) => {
         tax_deferred += account.balance.unwrap()
       },
-      (types::AccountTypeNew::A401k, types::AccountTypeSubtype::Roth) => {
+      (pc_types::AccountTypeNew::A401k, pc_types::AccountTypeSubtype::Roth) => {
         tax_free += account.balance.unwrap()
       },
       (..) => {},

@@ -1,4 +1,4 @@
-use chrono;
+use chrono::{self, serde::ts_milliseconds_option, DateTime, Utc};
 use serde::Deserialize;
 use serde_json::value::RawValue;
 
@@ -16,7 +16,7 @@ pub struct Response {
   pub sp_header: SpHeader,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SpHeader {
   #[serde(rename = "SP_HEADER_VERSION")]
   pub sp_header_version: i64,
@@ -50,7 +50,7 @@ pub struct SpHeader {
   pub person_id: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SpDataChange {
   #[serde(rename = "serverChangeId")]
   pub server_change_id: i64,
@@ -62,7 +62,7 @@ pub struct SpDataChange {
 
 pub type Tags = Vec<Tag>;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Tag {
   #[serde(rename = "tagId")]
   pub tag_id: i64,
@@ -71,26 +71,26 @@ pub struct Tag {
   pub tag_name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Details {
   #[serde(rename = "id")]
   pub id: Option<i64>,
   pub cause: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct QuerySession {
   pub interval: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Error {
   pub code: i64,
   pub details: Option<ErrorDetails>,
   pub message: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ErrorDetails {
   #[serde(rename = "fieldName")]
   pub field_name: Option<String>,
@@ -98,7 +98,7 @@ pub struct ErrorDetails {
   pub original_value: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AccountsSummary {
   #[serde(rename = "hasCredit")]
   pub has_credit: bool,
@@ -112,20 +112,20 @@ pub struct AccountsSummary {
   pub has_on_us: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AuthenticatePassword {
   #[serde(rename = "allCredentials")]
   pub all_credentials: Vec<Credential>,
   pub credentials: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Credential {
   pub name: String,
   pub status: Status,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct UserTransactions {
   #[serde(rename = "intervalType")]
   pub interval_type: Option<String>,
@@ -146,7 +146,7 @@ pub struct UserTransactions {
   pub average_in: Option<f64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Transaction {
   #[serde(rename = "isInterest")]
   pub is_interest: bool,
@@ -222,7 +222,7 @@ pub struct Transaction {
   pub custom_tags: Option<CustomTags>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CustomTags {
   #[serde(rename = "systemTags")]
   pub system_tags: Vec<i64>,
@@ -231,7 +231,7 @@ pub struct CustomTags {
   pub user_tags: Vec<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct IdentifyUser {
   #[serde(rename = "userStatus")]
   pub user_status: Status,
@@ -252,7 +252,7 @@ pub enum Status {
   None,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum InvestmentType {
   Dividend,
   Transfer,
@@ -263,13 +263,13 @@ pub enum InvestmentType {
   Interest,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum ResultType {
   #[serde(rename = "aggregated")]
   Aggregated,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum TransactionStatus {
   #[serde(rename = "posted")]
   Posted,
@@ -277,7 +277,7 @@ pub enum TransactionStatus {
   Pending,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum TransactionType {
   Buy,
   #[serde(rename = "Cash In")]
@@ -334,6 +334,8 @@ pub enum TransactionType {
   Recharacterization,
   #[serde(rename = "Fund Exchange")]
   FundExchange,
+  #[serde(rename = "Administrative Fee")]
+  AdministrativeFee,
   #[serde(rename = "Other")]
   Other,
 }
@@ -356,13 +358,13 @@ pub enum AuthLevel {
   None,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct UserSpending {
   #[serde(rename = "intervals")]
   pub intervals: Vec<SpendingInterval>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SpendingInterval {
   #[serde(rename = "average")]
   pub average: Option<f64>,
@@ -376,7 +378,7 @@ pub struct SpendingInterval {
   pub interval_type: IntervalType,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum IntervalType {
   #[serde(rename = "YEAR")]
   Year,
@@ -386,7 +388,7 @@ pub enum IntervalType {
   Week,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SpendingDetail {
   #[serde(rename = "amount")]
   pub amount: f64,
@@ -394,7 +396,7 @@ pub struct SpendingDetail {
   pub date: chrono::NaiveDate,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Accounts {
   #[serde(rename = "creditCardAccountsTotal")]
   pub credit_card_accounts_total: f64,
@@ -416,7 +418,7 @@ pub struct Accounts {
   pub other_asset_accounts_total: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Account {
   #[serde(rename = "isOnUs")]
   pub is_on_us: bool,
@@ -471,8 +473,8 @@ pub struct Account {
   pub is_on_us401_k: bool,
   #[serde(rename = "advisoryFeePercentage")]
   pub advisory_fee_percentage: Option<f64>,
-  #[serde(rename = "lastRefreshed")]
-  pub last_refreshed: Option<i64>,
+  #[serde(rename = "lastRefreshed", with = "ts_milliseconds_option", default)]
+  pub last_refreshed: Option<DateTime<Utc>>,
   pub apr: Option<f64>,
   #[serde(rename = "availableCredit")]
   pub available_credit: Option<f64>,
@@ -530,8 +532,8 @@ pub struct Account {
   pub mfa_type: Option<MfaType>,
   #[serde(rename = "isTaxDeferredOrNonTaxable")]
   pub is_tax_deferred_or_non_taxable: Option<bool>,
-  #[serde(rename = "lastPaymentDate")]
-  pub last_payment_date: Option<i64>,
+  #[serde(rename = "lastPaymentDate", with = "ts_milliseconds_option", default)]
+  pub last_payment_date: Option<DateTime<Utc>>,
   #[serde(rename = "lastPaymentAmount")]
   pub last_payment_amount: Option<AmountDue>,
   pub currency: Option<Currency>,
@@ -555,8 +557,8 @@ pub struct Account {
   pub amount_due: Option<AmountDue>,
   #[serde(rename = "isEsog")]
   pub is_esog: bool,
-  #[serde(rename = "createdDate")]
-  pub created_date: Option<i64>,
+  #[serde(rename = "createdDate", with = "ts_milliseconds_option", default)]
+  pub created_date: Option<DateTime<Utc>>,
   #[serde(rename = "closedDate")]
   pub closed_date: String,
   #[serde(rename = "isPaymentFromCapable")]
@@ -567,14 +569,14 @@ pub struct Account {
   pub original_firm_name: String,
   #[serde(rename = "runningBalance")]
   pub running_balance: Option<f64>,
-  #[serde(rename = "payoffDate")]
-  pub payoff_date: Option<i64>,
+  #[serde(rename = "payoffDate", with = "ts_milliseconds_option", default)]
+  pub payoff_date: Option<DateTime<Utc>>,
   #[serde(rename = "principalBalance")]
   pub principal_balance: Option<f64>,
   #[serde(rename = "accruedInterest")]
   pub accrued_interest: Option<f64>,
-  #[serde(rename = "originationDate")]
-  pub origination_date: Option<i64>,
+  #[serde(rename = "originationDate", with = "ts_milliseconds_option", default)]
+  pub origination_date: Option<DateTime<Utc>>,
   #[serde(rename = "billingCycle")]
   pub billing_cycle: Option<String>,
   pub description: Option<String>,
@@ -639,14 +641,14 @@ pub struct Account {
   pub disbursement_type: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ContactInfo {
   pub url: Option<String>,
   pub phone: Option<String>,
   pub email: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LoginField {
   #[serde(rename = "isUsername")]
   pub is_username: Option<bool>,
@@ -659,7 +661,7 @@ pub struct LoginField {
   pub is_password: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LoginPart {
   pub size: i64,
   pub name: String,
@@ -671,7 +673,7 @@ pub struct LoginPart {
   pub mask: Option<Mask>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct NextAction {
   #[serde(rename = "nextActionMessage")]
   pub next_action_message: Option<String>,
@@ -687,7 +689,7 @@ pub struct NextAction {
   pub aggregation_error_type: AggregationErrorType,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AccountTypeNew {
   #[serde(rename = "")]
   None,
@@ -721,7 +723,7 @@ impl Default for AccountTypeNew {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AccountTypeSubtype {
   #[serde(rename = "")]
   None,
@@ -737,12 +739,12 @@ impl Default for AccountTypeSubtype {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum AmountDue {
   NaN,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Currency {
   #[serde(rename = "")]
   Empty,
@@ -750,7 +752,7 @@ pub enum Currency {
   Usd,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum Id {
   #[serde(rename = "LOGIN")]
   Login,
@@ -770,13 +772,13 @@ pub enum Id {
   OpOption,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum Mask {
   #[serde(rename = "LOGIN_FIELD")]
   LoginField,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum PartType {
   #[serde(rename = "PASSWORD")]
   Password,
@@ -786,13 +788,13 @@ pub enum PartType {
   Options,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum MfaType {
   #[serde(rename = "SECURITY_QUESTION")]
   SecurityQuestion,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum Action {
   #[serde(rename = "NONE")]
   None,
@@ -818,7 +820,7 @@ pub enum Action {
   MoreInfo,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum AggregationErrorType {
   #[serde(rename = "NO_ERROR")]
   NoError,
@@ -856,7 +858,7 @@ pub enum ProductType {
   OtherAssets,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum RoutingNumberSource {
   #[serde(rename = "YODLEE_AGGREGATION")]
   YodleeAggregation,
@@ -864,7 +866,7 @@ pub enum RoutingNumberSource {
 
 pub type Categories = Vec<Category>;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Category {
   #[serde(rename = "isEditable")]
   pub is_editable: bool,
@@ -883,7 +885,7 @@ pub struct Category {
   pub transaction_category_key: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum CategoryType {
   #[serde(rename = "EXPENSE")]
   Expense,
@@ -895,7 +897,7 @@ pub enum CategoryType {
   Uncategorized,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Holdings {
   #[serde(rename = "classifications")]
   pub classifications: Vec<Option<serde_json::Value>>,
@@ -905,7 +907,7 @@ pub struct Holdings {
   pub holdings_total_value: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Holding {
   #[serde(rename = "quantity")]
   pub quantity: f64,
@@ -979,7 +981,7 @@ pub struct Holding {
   pub cost_basis: Option<f64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum Exchange {
   #[serde(rename = "NASDAQ")]
   Nasdaq,
@@ -989,7 +991,7 @@ pub enum Exchange {
   NyseArca,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum HoldingType {
   #[serde(rename = "Cash")]
   Cash,
@@ -1003,7 +1005,7 @@ pub enum HoldingType {
   Stock,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum ManualClassification {
   #[serde(rename = "RESTRICTED")]
   Restricted,
@@ -1011,7 +1013,7 @@ pub enum ManualClassification {
   Unclassified,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum PriceSource {
   #[serde(rename = "MARKET")]
   Market,
@@ -1021,7 +1023,7 @@ pub enum PriceSource {
   User,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum FundType {
   #[serde(rename = "ETF")]
   Etf,

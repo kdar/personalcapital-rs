@@ -24,3 +24,9 @@ pub(crate) fn deserialize_f64_option<'de, D: Deserializer<'de>>(
 ) -> Result<Option<f64>, D::Error> {
   deserializer.deserialize_any(F64).map(Some).or(Ok(None))
 }
+
+// pub(crate) fn deserialize_milli_ts_option<'de, D: Deserializer<'de>>(
+//   deserializer: D,
+// ) -> Result<Option<NaiveDateTime>, D::Error> {
+//   ts_milliseconds_option::deserialize(deserializer).map(|o| o.map(|d| d.naive_utc()))
+// }

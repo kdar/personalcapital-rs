@@ -4,7 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
-use std::{collections::HashMap, error::Error as StdError, io::Write};
+use std::{collections::HashMap, error::Error as StdError, io::Write, sync::Arc};
 
 use async_trait::async_trait;
 use cookie_store::CookieStore;
@@ -92,12 +92,12 @@ pub enum Error {
 }
 
 #[async_trait]
-pub trait Store {
+pub trait Store: Send + Sync {
   type Error;
-  async fn save_csrf(&mut self, csrf: String) -> Result<(), Self::Error>;
-  async fn save_cookies(&mut self, cookies: Vec<u8>) -> Result<(), Self::Error>;
-  async fn load_csrf(&mut self) -> Result<Option<String>, Self::Error>;
-  async fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
+  async fn save_csrf(&self, csrf: String) -> Result<(), Self::Error>;
+  async fn save_cookies(&self, cookies: Vec<u8>) -> Result<(), Self::Error>;
+  async fn load_csrf(&self) -> Result<Option<String>, Self::Error>;
+  async fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 #[derive(Clone, Default)]
@@ -107,19 +107,19 @@ struct DefaultStore;
 impl Store for DefaultStore {
   type Error = SyncError;
 
-  async fn save_csrf(&mut self, _csrf: String) -> Result<(), Self::Error> {
+  async fn save_csrf(&self, _csrf: String) -> Result<(), Self::Error> {
     Ok(())
   }
 
-  async fn save_cookies(&mut self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
+  async fn save_cookies(&self, _cookies: Vec<u8>) -> Result<(), Self::Error> {
     Ok(())
   }
 
-  async fn load_csrf(&mut self) -> Result<Option<String>, Self::Error> {
+  async fn load_csrf(&self) -> Result<Option<String>, Self::Error> {
     Ok(None)
   }
 
-  async fn load_cookies(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
+  async fn load_cookies(&self) -> Result<Option<Vec<u8>>, Self::Error> {
     Ok(None)
   }
 }
@@ -134,7 +134,7 @@ pub struct UpdateUserTransactionsArgs {
 }
 
 pub struct ClientBuilder {
-  store: Box<dyn Store<Error = SyncError>>,
+  store: Arc<dyn Store<Error = SyncError>>,
   username: Option<String>,
   password: Option<String>,
   device_name: Option<String>,
@@ -143,14 +143,14 @@ pub struct ClientBuilder {
 impl ClientBuilder {
   pub fn new() -> Self {
     ClientBuilder {
-      store: Box::new(DefaultStore),
+      store: Arc::new(DefaultStore),
       username: None,
       password: None,
       device_name: None,
     }
   }
 
-  pub fn store(&mut self, value: Box<dyn Store<Error = SyncError>>) -> &mut Self {
+  pub fn store(&mut self, value: Arc<dyn Store<Error = SyncError>>) -> &mut Self {
     self.store = value;
     self
   }
@@ -215,11 +215,12 @@ impl ClientBuilder {
       // .redirect(p)
       .build()?;
 
-    // Is there a better way to do this?
-    let mut store: Box<dyn Store<Error = SyncError>> = Box::new(DefaultStore);
-    ::std::mem::swap(&mut self.store, &mut store);
+    // Could instead use an Option for self.store, then just use self.store.as_ref()
+    // when accessing it.
+    // let mut store: Box<dyn Store<Error = SyncError>> = Box::new(DefaultStore);
+    // ::std::mem::swap(&mut self.store, &mut store);
 
-    let cookie_store = if let Some(cookies) = store.load_cookies().await? {
+    let cookie_store = if let Some(cookies) = self.store.load_cookies().await? {
       CookieStore::load_json(&cookies[..])?
     } else {
       CookieStore::default()
@@ -230,7 +231,7 @@ impl ClientBuilder {
       csrf: String::new(),
       auth_level: pc_types::AuthLevel::Null,
       cookie_store,
-      store,
+      store: self.store.clone(),
       username: self.username.take().unwrap(),
       password: self.password.take().unwrap(),
       device_name: self.device_name.take().unwrap(),
@@ -244,7 +245,7 @@ pub struct Client {
   csrf: String,
   auth_level: pc_types::AuthLevel,
   cookie_store: CookieStore,
-  store: Box<dyn Store<Error = SyncError>>,
+  store: Arc<dyn Store<Error = SyncError>>,
   username: String,
   password: String,
   device_name: String,
