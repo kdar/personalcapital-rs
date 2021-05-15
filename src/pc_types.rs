@@ -1,8 +1,8 @@
-use chrono::{self, serde::ts_milliseconds_option, DateTime, Utc};
+use chrono::{self, serde::ts_milliseconds_option, DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json::value::RawValue;
 
-use crate::serde_util::deserialize_f64_option;
+use crate::serde_util::{deserialize_f64_option, empty_string_as_none};
 
 fn empty_rawvalue() -> Box<RawValue> {
   serde_json::value::RawValue::from_string("null".into()).unwrap()
@@ -559,8 +559,12 @@ pub struct Account {
   pub is_esog: bool,
   #[serde(rename = "createdDate", with = "ts_milliseconds_option", default)]
   pub created_date: Option<DateTime<Utc>>,
-  #[serde(rename = "closedDate")]
-  pub closed_date: String,
+  #[serde(
+    rename = "closedDate",
+    deserialize_with = "empty_string_as_none",
+    default
+  )]
+  pub closed_date: Option<NaiveDate>,
   #[serde(rename = "isPaymentFromCapable")]
   pub is_payment_from_capable: bool,
   #[serde(rename = "siteId")]
