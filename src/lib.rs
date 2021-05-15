@@ -383,7 +383,28 @@ impl Client {
     }
 
     let payload = json.sp_data.get();
-    serde_json::from_str(payload).map_err(|e| Error::SerdeJsonContext(e, payload.to_string()))
+    serde_json::from_str(payload).map_err(|e| {
+      let line = e.line() - 1;
+      let payload = payload
+        .to_string()
+        .split("\n")
+        .nth(line)
+        .unwrap()
+        .to_string();
+      let column = e.column() - 1;
+      let range_start = if column as isize - 20 < 0 {
+        0
+      } else {
+        column - 20
+      };
+      let range_end = if column + 20 >= payload.len() {
+        payload.len()
+      } else {
+        column + 20
+      };
+      let s = (&payload[range_start..range_end]).to_string();
+      Error::SerdeJsonContext(e, s)
+    })
   }
 
   async fn get_csrf(&mut self) -> Result<(), Error> {
