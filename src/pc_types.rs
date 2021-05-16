@@ -490,8 +490,8 @@ pub struct Account {
   pub logo_path: Option<String>,
   #[serde(rename = "currentBalance")]
   pub current_balance: Option<f64>,
-  #[serde(rename = "accountType")]
-  pub account_type: Option<String>,
+  #[serde(rename = "accountType", default)]
+  pub account_type: AccountType,
   #[serde(rename = "paymentFromStatus")]
   pub payment_from_status: bool,
   #[serde(rename = "isRefetchTransactionEligible")]
@@ -509,8 +509,8 @@ pub struct Account {
   pub name: Option<String>,
   #[serde(rename = "firmName")]
   pub firm_name: String,
-  #[serde(rename = "accountTypeGroup")]
-  pub account_type_group: Option<String>,
+  #[serde(rename = "accountTypeGroup", default)]
+  pub account_type_group: AccountTypeGroup,
   #[serde(rename = "paymentToStatus")]
   pub payment_to_status: bool,
   #[serde(rename = "isSelectedForTransfer")]
@@ -540,7 +540,7 @@ pub struct Account {
   #[serde(rename = "pcbEnrollmentState")]
   pub pcb_enrollment_state: Option<String>,
   #[serde(rename = "productType")]
-  pub product_type: Option<ProductType>,
+  pub product_type: ProductType,
   #[serde(rename = "isAccountNumberValidated")]
   pub is_account_number_validated: Option<bool>,
   #[serde(rename = "minPaymentDue")]
@@ -700,17 +700,17 @@ pub enum AccountTypeNew {
   #[serde(rename = "INVESTMENT")]
   Investment,
   #[serde(rename = "IRA")]
-  Ira,
+  IRA,
   #[serde(rename = "401K")]
-  A401k,
+  Retirement401k,
   #[serde(rename = "529")]
-  A529,
+  Educational529,
   #[serde(rename = "PERSONAL")]
   Personal,
   #[serde(rename = "MORTGAGE")]
   Mortgage,
   #[serde(rename = "MMA")]
-  MMA,
+  MoneyMarket,
   #[serde(rename = "CHECKING")]
   Checking,
   #[serde(rename = "SAVINGS")]
@@ -738,6 +738,84 @@ pub enum AccountTypeSubtype {
 }
 
 impl Default for AccountTypeSubtype {
+  fn default() -> Self {
+    Self::None
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum AccountType {
+  #[serde(rename = "")]
+  None,
+  #[serde(rename = "Checking")]
+  Checking,
+  #[serde(rename = "Cash")]
+  Cash,
+  #[serde(rename = "Credit")]
+  Credit,
+  #[serde(rename = "IRA - Traditional")]
+  TraditionalIra,
+  #[serde(rename = "IRA - Roth")]
+  RothIra,
+  #[serde(rename = "Savings")]
+  Savings,
+  #[serde(rename = "401K")]
+  Traditional401k,
+  #[serde(rename = "Investment")]
+  Investment,
+  #[serde(rename = "Individual Account")]
+  IndividualAccount,
+  #[serde(rename = "Joint Account")]
+  JointAccount,
+  #[serde(rename = "Brokerage")]
+  Brokerage,
+  #[serde(rename = "Mortgage")]
+  Mortgage,
+  #[serde(rename = "529")]
+  Educational529,
+  #[serde(rename = "Money Market")]
+  MoneyMarket,
+  #[serde(rename = "ESPP")]
+  ESPP,
+  #[serde(rename = "ESOP")]
+  ESOP,
+  #[serde(rename = "401K, Former Employer")]
+  Traditional401kFormerEmployer,
+  #[serde(rename = "Personal")]
+  Personal,
+  #[serde(rename = "Assets")]
+  Assets,
+}
+
+impl Default for AccountType {
+  fn default() -> Self {
+    Self::None
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum AccountTypeGroup {
+  #[serde(rename = "")]
+  None,
+  #[serde(rename = "BANK")]
+  Bank,
+  #[serde(rename = "CREDIT_CARD")]
+  CreditCard,
+  #[serde(rename = "RETIREMENT")]
+  Retirement,
+  #[serde(rename = "INVESTMENT")]
+  Investment,
+  #[serde(rename = "MORTGAGE")]
+  Mortgage,
+  #[serde(rename = "EDUCATIONAL")]
+  Educational,
+  #[serde(rename = "ESOP")]
+  ESOP,
+  #[serde(rename = "ESPP")]
+  ESPP,
+}
+
+impl Default for AccountTypeGroup {
   fn default() -> Self {
     Self::None
   }

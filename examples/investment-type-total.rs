@@ -13,8 +13,7 @@ fn main() {
   let mut tax_free: f64 = 0.0;
 
   for account in v.accounts {
-    if account.product_type.is_none()
-      || account.product_type.unwrap() != pc_types::ProductType::Investment
+    if account.product_type != pc_types::ProductType::Investment
       || account.is_exclude_from_household
     {
       continue;
