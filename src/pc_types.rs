@@ -336,6 +336,8 @@ pub enum TransactionType {
   FundExchange,
   #[serde(rename = "Administrative Fee")]
   AdministrativeFee,
+  #[serde(rename = "Direct Deposit")]
+  DirectDeposit,
   #[serde(rename = "Other")]
   Other,
 }
