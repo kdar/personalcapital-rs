@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{self, serde::ts_milliseconds_option, DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json::value::RawValue;
@@ -128,7 +130,7 @@ pub struct Credential {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct UserTransactions {
   #[serde(rename = "intervalType")]
-  pub interval_type: Option<String>,
+  pub interval_type: Option<Interval>,
   #[serde(rename = "endDate")]
   pub end_date: chrono::NaiveDate,
   #[serde(rename = "moneyIn")]
@@ -377,17 +379,30 @@ pub struct SpendingInterval {
   #[serde(rename = "target")]
   pub target: f64,
   #[serde(rename = "type")]
-  pub interval_type: IntervalType,
+  pub interval_type: Interval,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
-pub enum IntervalType {
+pub enum Interval {
   #[serde(rename = "YEAR")]
   Year,
   #[serde(rename = "MONTH")]
   Month,
   #[serde(rename = "WEEK")]
   Week,
+  #[serde(rename = "DAY")]
+  Day,
+}
+
+impl AsRef<str> for Interval {
+  fn as_ref(&self) -> &'static str {
+    match self {
+      Self::Year => "YEAR",
+      Self::Month => "MONTH",
+      Self::Week => "WEEK",
+      Self::Day => "DAY",
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -1123,4 +1138,161 @@ pub enum HoldingSource {
   User,
   #[serde(rename = "YODLEE")]
   Yodlee,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(untagged)]
+pub enum HistoryBalance {
+  Float(f64),
+  String(String),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub enum HistoryType {
+  Balances,
+  Networth,
+  DailyChangeAmount,
+  OneDaySummaries,
+  CashFlows,
+}
+
+// impl From<&'static str> for HistoryType {
+//   fn from(s: &'static str) -> Self {
+//     match s {
+//       "balances" => Self::Balances,
+//       "networth" => Self::Networth,
+//       "dailychangeamount" => Self::DailyChangeAmount,
+//       "oneDaySummaries" => Self::OneDaySummaries,
+//       "cashflows" => Self::CashFlows,
+//     }
+//   }
+// }
+
+impl AsRef<str> for HistoryType {
+  fn as_ref(&self) -> &'static str {
+    match self {
+      Self::Balances => "balances",
+      Self::Networth => "networth",
+      Self::DailyChangeAmount => "dailychangeamount",
+      Self::OneDaySummaries => "oneDaySummaries",
+      Self::CashFlows => "cashflows",
+    }
+  }
+}
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Histories {
+  #[serde(rename = "networthSummary")]
+  pub networth_summary: Option<HashMap<String, i64>>,
+  #[serde(rename = "oneDaySummaries")]
+  pub one_day_summaries: Option<OneDaySummaries>,
+  #[serde(rename = "intervalType")]
+  pub interval_type: Option<Interval>,
+  pub histories: Option<Vec<History>>,
+  #[serde(rename = "accountSummaries")]
+  pub account_summaries: Option<Vec<AccountSummary>>,
+  #[serde(rename = "networthHistories")]
+  pub networth_histories: Option<Vec<NetworthHistory>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct AccountSummary {
+  pub income: f64,
+  #[serde(rename = "dateRangeBalanceValueChange")]
+  pub date_range_balance_value_change: f64,
+  #[serde(rename = "accountName")]
+  pub account_name: String,
+  #[serde(rename = "currentBalance")]
+  pub current_balance: f64,
+  #[serde(rename = "cashFlow")]
+  pub cash_flow: f64,
+  #[serde(rename = "siteName")]
+  pub site_name: String,
+  #[serde(rename = "oneDayBalancePercentageChange")]
+  pub one_day_balance_percentage_change: i64,
+  #[serde(rename = "oneDayBalanceValueChange")]
+  pub one_day_balance_value_change: i64,
+  pub expense: i64,
+  #[serde(rename = "dateRangePerformanceValueChange")]
+  pub date_range_performance_value_change: f64,
+  #[serde(rename = "closedDate")]
+  pub closed_date: String,
+  #[serde(rename = "percentOfTotal")]
+  pub percent_of_total: f64,
+  #[serde(rename = "userAccountId")]
+  pub user_account_id: i64,
+  #[serde(rename = "oneDayPerformanceValueChange")]
+  pub one_day_performance_value_change: i64,
+  #[serde(rename = "dateRangeBalancePercentageChange")]
+  pub date_range_balance_percentage_change: i64,
+  #[serde(rename = "balanceAsOfEndDate")]
+  pub balance_as_of_end_date: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct History {
+  pub date: String,
+  #[serde(rename = "aggregateDailyChangeAmount")]
+  pub aggregate_daily_change_amount: Option<f64>,
+  #[serde(rename = "aggregateCashIn")]
+  pub aggregate_cash_in: Option<f64>,
+  pub balances: HashMap<String, HistoryBalance>,
+  #[serde(rename = "aggregateBalance")]
+  pub aggregate_balance: f64,
+  #[serde(rename = "aggregateCashOut")]
+  pub aggregate_cash_out: Option<f64>,
+  #[serde(rename = "dailyChangeAmount")]
+  pub daily_change_amount: Option<HashMap<String, f64>>,
+  #[serde(rename = "aggregateIncome")]
+  pub aggregate_income: Option<f64>,
+  pub cashflows: Option<HashMap<String, Cashflow>>,
+  #[serde(rename = "aggregateExpense")]
+  pub aggregate_expense: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct Cashflow {
+  pub income: f64,
+  #[serde(rename = "cashIn")]
+  pub cash_in: f64,
+  pub expense: i64,
+  #[serde(rename = "cashOut")]
+  pub cash_out: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct NetworthHistory {
+  pub date: String,
+  #[serde(rename = "totalMortgage")]
+  pub total_mortgage: i64,
+  #[serde(rename = "totalOtherAssets")]
+  pub total_other_assets: i64,
+  #[serde(rename = "totalAssets")]
+  pub total_assets: f64,
+  #[serde(rename = "totalCredit")]
+  pub total_credit: i64,
+  #[serde(rename = "totalLoan")]
+  pub total_loan: i64,
+  #[serde(rename = "oneDayNetworthPercentageChange")]
+  pub one_day_networth_percentage_change: f64,
+  #[serde(rename = "totalLiabilities")]
+  pub total_liabilities: i64,
+  #[serde(rename = "totalOtherLiabilities")]
+  pub total_other_liabilities: i64,
+  #[serde(rename = "oneDayNetworthChange")]
+  pub one_day_networth_change: f64,
+  #[serde(rename = "totalEmpower")]
+  pub total_empower: i64,
+  #[serde(rename = "totalCash")]
+  pub total_cash: i64,
+  pub networth: f64,
+  #[serde(rename = "totalInvestment")]
+  pub total_investment: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct OneDaySummaries {
+  #[serde(rename = "aggregatedOneDayPercentageChange")]
+  pub aggregated_one_day_percentage_change: i64,
+  #[serde(rename = "aggregatedOneDayValueChange")]
+  pub aggregated_one_day_value_change: i64,
 }

@@ -34,6 +34,7 @@ const CATEGORIES: &str = "/api/transactioncategory/getCategories";
 const HOLDINGS: &str = "/api/invest/getHoldings";
 const TAGS: &str = "/api/transactiontag/getTags";
 const UPDATE_USER_TRANSACTIONS: &str = "/api/transaction/updateUserTransactions2";
+const HISTORIES: &str = "/api/account/getHistories";
 
 lazy_static! {
   static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
@@ -796,6 +797,75 @@ impl Client {
         .into(),
       ));
     }
+
+    let req = self.client.post(&url).form(&params).build()?;
+    let json = self.request_json(req).await?;
+
+    Ok(json)
+  }
+
+  pub async fn histories<S: Into<String>>(
+    &mut self,
+    account_ids: Option<&[i64]>,
+    start_date: S,
+    end_date: S,
+    interval: pc_types::Interval,
+    include_networth_category_details: bool,
+    types: Option<&[pc_types::HistoryType]>,
+  ) -> Result<pc_types::Histories, Error> {
+    let url = format!("{}{}", BASE_URL, HISTORIES);
+
+    let params = vec![
+      ("csrf", self.csrf.clone()),
+      ("apiClient", "WEB".into()),
+      (
+        "lastServerChangeId",
+        format!("{}", self.last_server_change_id),
+      ),
+      ("startDate", start_date.into()),
+      ("endDate", end_date.into()),
+      ("interval", interval.as_ref().into()),
+      ("intervalType", interval.as_ref().into()),
+      (
+        "types",
+        format!(
+          "[{}]",
+          types
+            .map(|v| {
+              v.iter()
+                .skip(1)
+                .fold(format!("\"{}\"", v[0].as_ref()), |a, b| {
+                  format!("{},\"{}\"", a, b.as_ref())
+                })
+            })
+            .unwrap_or_else(|| String::from("\"none\""))
+        )
+        .into(),
+      ),
+      (
+        "includeNetworthCategoryDetails",
+        if include_networth_category_details {
+          "true"
+        } else {
+          "false"
+        }
+        .into(),
+      ),
+      (
+        "userAccountIds",
+        format!(
+          "[{}]",
+          account_ids
+            .map(|v| {
+              v.iter()
+                .skip(1)
+                .fold(format!("{}", v[0]), |a, b| format!("{},{}", a, b))
+            })
+            .unwrap_or_else(|| String::new())
+        )
+        .into(),
+      ),
+    ];
 
     let req = self.client.post(&url).form(&params).build()?;
     let json = self.request_json(req).await?;
