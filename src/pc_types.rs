@@ -178,6 +178,9 @@ pub struct Transaction {
   #[serde(rename = "isSpending")]
   pub is_spending: bool,
   pub amount: f64,
+  #[serde(rename = "hasSplits")]
+  pub has_splits: Option<bool>,
+  pub splits: Option<Vec<Split>>,
   #[serde(rename = "transactionTypeId")]
   pub transaction_type_id: i64,
   #[serde(rename = "isIncome")]
@@ -222,6 +225,17 @@ pub struct Transaction {
   pub original_category_id: Option<i64>,
   #[serde(rename = "customTags")]
   pub custom_tags: Option<CustomTags>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Split {
+  pub amount: f64,
+  #[serde(rename = "customTags")]
+  pub custom_tags: Option<CustomTags>,
+  #[serde(rename = "userTransactionId")]
+  pub user_transaction_id: String,
+  #[serde(rename = "categoryId")]
+  pub category_id: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -941,6 +955,10 @@ pub enum AggregationErrorType {
   MfaTimedout,
   #[serde(rename = "PASSWORD_OR_QUESTIONS_INCORRECT")]
   PasswordOrQuestionsIncorrect,
+  #[serde(rename = "AGGREGATION_NEVER_DONE")]
+  AggregationNeverDone,
+  #[serde(rename = "LOCKED_OUT")]
+  LockedOut,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
