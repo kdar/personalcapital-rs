@@ -18,6 +18,7 @@ use thiserror::Error;
 
 pub mod pc_types;
 mod serde_util;
+pub mod sort;
 
 const BASE_URL: &str = "https://home.personalcapital.com";
 const IDENTIFY_USER: &str = "/api/login/identifyUser";
@@ -873,15 +874,3 @@ impl Client {
     Ok(json)
   }
 }
-
-// #[cfg(test)]
-// mod tests {
-//   use super::*;
-
-//   #[test]
-//   fn it_works() {
-//     env_logger::init();
-//     let mut c = ClientBuilder::new().build().unwrap();
-//     c.auth().unwrap();
-//   }
-// }
