@@ -959,6 +959,8 @@ pub enum AggregationErrorType {
   AggregationNeverDone,
   #[serde(rename = "LOCKED_OUT")]
   LockedOut,
+  #[serde(rename = "CATCH_ALL")]
+  CatchAll,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
@@ -971,6 +973,8 @@ pub enum ProductType {
   Investment,
   #[serde(rename = "MORTGAGE")]
   Mortgage,
+  #[serde(rename = "LOAN")]
+  Loan,
   #[serde(rename = "OTHER_ASSETS")]
   OtherAssets,
 }
