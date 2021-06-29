@@ -153,7 +153,7 @@ pub struct Transaction {
   #[serde(rename = "isInterest")]
   pub is_interest: bool,
   #[serde(rename = "netCost")]
-  pub net_cost: f64,
+  pub net_cost: Option<f64>,
   #[serde(rename = "accountName")]
   pub account_name: String,
   pub description: String,
@@ -172,7 +172,7 @@ pub struct Transaction {
   #[serde(rename = "isDuplicate")]
   pub is_duplicate: bool,
   #[serde(rename = "resultType")]
-  pub result_type: ResultType,
+  pub result_type: Option<ResultType>,
   #[serde(rename = "originalDescription")]
   pub original_description: String,
   #[serde(rename = "isSpending")]
@@ -209,7 +209,7 @@ pub struct Transaction {
   #[serde(rename = "catKeyword")]
   pub cat_keyword: Option<String>,
   #[serde(rename = "runningBalance")]
-  pub running_balance: f64,
+  pub running_balance: Option<f64>,
   #[serde(rename = "hasViewed")]
   pub has_viewed: bool,
   #[serde(rename = "categoryId")]
@@ -283,6 +283,8 @@ pub enum InvestmentType {
 pub enum ResultType {
   #[serde(rename = "aggregated")]
   Aggregated,
+  #[serde(rename = "")]
+  None,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -354,6 +356,20 @@ pub enum TransactionType {
   AdministrativeFee,
   #[serde(rename = "Direct Deposit")]
   DirectDeposit,
+  #[serde(rename = "!TRANSACTION_TYPE.REFUND!")]
+  Refund,
+  #[serde(rename = "!TRANSACTION_TYPE.PURCHASE!")]
+  Purchase,
+  #[serde(rename = "!TRANSACTION_TYPE.PAYMENT!")]
+  Payment,
+  #[serde(rename = "!TRANSACTION_TYPE.TRANSFER!")]
+  Transfer,
+  #[serde(rename = "!TRANSACTION_TYPE.DEPOSITS_CREDITS!")]
+  DepositsCredits,
+  #[serde(rename = "Employee contribution")]
+  EmployeeContribution,
+  #[serde(rename = "Interest charge")]
+  InterestCharge,
   #[serde(rename = "Other")]
   Other,
 }
@@ -1016,6 +1032,8 @@ pub enum CategoryType {
   Transfer,
   #[serde(rename = "UNCATEGORIZED")]
   Uncategorized,
+  #[serde(rename = "DEFERRED_COMPENSATION")]
+  DeferredCompensation,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
