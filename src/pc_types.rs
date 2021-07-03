@@ -370,6 +370,8 @@ pub enum TransactionType {
   EmployeeContribution,
   #[serde(rename = "Interest charge")]
   InterestCharge,
+  #[serde(rename = "Deposit")]
+  Deposit,
   #[serde(rename = "Other")]
   Other,
 }
@@ -816,7 +818,7 @@ pub enum AccountType {
   JointAccount,
   #[serde(rename = "Brokerage")]
   Brokerage,
-  #[serde(rename = "Mortgage")]
+  #[serde(rename = "Mortgage", alias = "MORTGAGE")]
   Mortgage,
   #[serde(rename = "529")]
   Educational529,
@@ -832,6 +834,8 @@ pub enum AccountType {
   Personal,
   #[serde(rename = "Assets")]
   Assets,
+  #[serde(rename = "Loan")]
+  Loan,
 }
 
 impl Default for AccountType {
