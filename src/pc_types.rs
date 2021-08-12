@@ -372,6 +372,8 @@ pub enum TransactionType {
   InterestCharge,
   #[serde(rename = "Deposit")]
   Deposit,
+  #[serde(rename = "Fee")]
+  Fee,
   #[serde(rename = "Other")]
   Other,
 }
@@ -485,7 +487,7 @@ pub struct Account {
   #[serde(rename = "isIAVEligible")]
   pub is_iav_eligible: Option<bool>,
   #[serde(rename = "loginFields")]
-  pub login_fields: Vec<LoginField>,
+  pub login_fields: Option<Vec<LoginField>>,
   #[serde(rename = "enrollmentConciergeRequested")]
   pub enrollment_concierge_requested: Option<i64>,
   #[serde(rename = "isCrypto")]
@@ -589,7 +591,7 @@ pub struct Account {
   #[serde(rename = "pcbEnrollmentState")]
   pub pcb_enrollment_state: Option<String>,
   #[serde(rename = "productType")]
-  pub product_type: ProductType,
+  pub product_type: Option<ProductType>,
   #[serde(rename = "isAccountNumberValidated")]
   pub is_account_number_validated: Option<bool>,
   #[serde(rename = "minPaymentDue")]
@@ -739,7 +741,7 @@ pub struct NextAction {
   pub status_message: Option<String>,
   pub prompts: Vec<Option<serde_json::Value>>,
   #[serde(rename = "aggregationErrorType")]
-  pub aggregation_error_type: AggregationErrorType,
+  pub aggregation_error_type: Option<AggregationErrorType>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -903,6 +905,8 @@ pub enum Id {
   Option,
   #[serde(rename = "OP_OPTION")]
   OpOption,
+  #[serde(rename = "PASSWORD1")]
+  Password1,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -951,6 +955,10 @@ pub enum Action {
   Blocked,
   #[serde(rename = "MORE_INFO")]
   MoreInfo,
+  #[serde(rename = "PCB_FINISH_SETUP")]
+  PcbFinishSetup,
+  #[serde(rename = "PCB_FUND_NOW")]
+  PcbFundNow,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -981,6 +989,8 @@ pub enum AggregationErrorType {
   LockedOut,
   #[serde(rename = "CATCH_ALL")]
   CatchAll,
+  #[serde(rename = "REGISTRATION_FAILED")]
+  RegistrationFailed,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
@@ -1003,6 +1013,8 @@ pub enum ProductType {
 pub enum RoutingNumberSource {
   #[serde(rename = "YODLEE_AGGREGATION")]
   YodleeAggregation,
+  #[serde(rename = "ENROLLMENT")]
+  Enrollment,
 }
 
 pub type Categories = Vec<Category>;
