@@ -165,7 +165,7 @@ pub struct Transaction {
   pub is_cash_out: bool,
   #[serde(rename = "merchantId")]
   pub merchant_id: String,
-  pub price: f64,
+  pub price: Option<f64>,
   #[serde(rename = "userTransactionId")]
   pub user_transaction_id: i64,
   pub currency: Currency,
@@ -812,6 +812,8 @@ pub enum AccountType {
   Savings,
   #[serde(rename = "401K")]
   Traditional401k,
+  #[serde(rename = "Roth 401k")]
+  Roth401k,
   #[serde(rename = "Investment")]
   Investment,
   #[serde(rename = "Individual Account")]
