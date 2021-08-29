@@ -4,7 +4,7 @@ use chrono::{self, serde::ts_milliseconds_option, DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json::value::RawValue;
 
-use crate::serde_util::{deserialize_f64_option, empty_string_as_none};
+use crate::serde_util::{deserialize_f64_option, deserialize_maybe_nan, empty_string_as_none};
 
 fn empty_rawvalue() -> Box<RawValue> {
   serde_json::value::RawValue::from_string("null".into()).unwrap()
@@ -199,6 +199,8 @@ pub struct Transaction {
   #[serde(rename = "accountId")]
   pub account_id: String,
   #[serde(rename = "originalAmount")]
+  #[serde(deserialize_with = "deserialize_maybe_nan")]
+  #[serde(default)]
   pub original_amount: Option<f64>,
   #[serde(rename = "isCost")]
   pub is_cost: bool,

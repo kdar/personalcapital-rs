@@ -46,3 +46,29 @@ where
     Some(s) => T::deserialize(s.into_deserializer()).map(Some),
   }
 }
+
+pub(crate) fn deserialize_maybe_nan<'de, D, T: Deserialize<'de>>(
+  deserializer: D,
+) -> Result<Option<T>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum MaybeNAN<U> {
+    Value(Option<U>),
+    NANString(String),
+  }
+
+  let value: MaybeNAN<T> = Deserialize::deserialize(deserializer)?;
+  match value {
+    MaybeNAN::Value(value) => Ok(value),
+    MaybeNAN::NANString(string) => {
+      if string == "NaN" {
+        Ok(None)
+      } else {
+        Err(serde::de::Error::custom("Unexpected string"))
+      }
+    }
+  }
+}

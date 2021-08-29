@@ -77,11 +77,11 @@ pub enum Error {
   SerdeJson(#[from] serde_json::error::Error),
   #[error("serde_json error: {0}; around `{}`", {
     let v = .1.lines().nth(.0.line()-1).unwrap();
-    let start = (.0.column()-1) - 100;
+    let start = (.0.column()-1) - 200;
     // if start < 0 {
     //   start = 0;
     // }
-    let mut end = (.0.column()-1) + 100;
+    let mut end = (.0.column()-1) + 200;
     if end >= v.len() {
       end = v.len()-1;
     }
@@ -337,7 +337,7 @@ impl Client {
       // }
       Err(e) => {
         return Err(e);
-      },
+      }
     };
 
     let text = res.text().await?;
@@ -497,11 +497,11 @@ impl Client {
     match self.request_json(req).await {
       Ok(()) => {
         // TODO: possibly set state here
-      },
+      }
       Err(e) => {
         // TODO: possibly set state here
         return Err(e);
-      },
+      }
     };
 
     Ok(())
@@ -537,15 +537,13 @@ impl Client {
       pc_types::AuthLevel::SessionAuthenticated | pc_types::AuthLevel::UserRemembered => Ok(()),
       pc_types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
       pc_types::AuthLevel::None => Err(Error::LoginFailed),
-      _ => {
-        Err(Error::Other(
-          format!(
-            "unknown auth level state at end of auth(): {:?}",
-            self.auth_level
-          )
-          .into(),
-        ))
-      },
+      _ => Err(Error::Other(
+        format!(
+          "unknown auth level state at end of auth(): {:?}",
+          self.auth_level
+        )
+        .into(),
+      )),
     }
   }
 
