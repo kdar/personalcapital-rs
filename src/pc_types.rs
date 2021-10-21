@@ -376,6 +376,8 @@ pub enum TransactionType {
   Deposit,
   #[serde(rename = "Fee")]
   Fee,
+  #[serde(rename = "Withdrawal")]
+  Withdrawal,
   #[serde(rename = "Other")]
   Other,
 }
@@ -720,8 +722,8 @@ pub struct LoginField {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct LoginPart {
-  pub size: i64,
-  pub name: String,
+  pub size: Option<i64>,
+  pub name: Option<String>,
   pub id: Id,
   #[serde(rename = "type")]
   pub part_type: PartType,
@@ -911,6 +913,8 @@ pub enum Id {
   OpOption,
   #[serde(rename = "PASSWORD1")]
   Password1,
+  #[serde(rename = "0001Choice")]
+  Choice0001,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -927,6 +931,8 @@ pub enum PartType {
   Text,
   #[serde(rename = "OPTIONS")]
   Options,
+  #[serde(rename = "RADIO")]
+  Radio,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
