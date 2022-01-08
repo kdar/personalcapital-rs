@@ -491,7 +491,7 @@ pub struct Account {
   #[serde(rename = "isIAVEligible")]
   pub is_iav_eligible: Option<bool>,
   #[serde(rename = "loginFields")]
-  pub login_fields: Option<Vec<LoginField>>,
+  pub login_fields: Option<Vec<Option<LoginField>>>,
   #[serde(rename = "enrollmentConciergeRequested")]
   pub enrollment_concierge_requested: Option<i64>,
   #[serde(rename = "isCrypto")]
@@ -728,7 +728,7 @@ pub struct LoginPart {
   #[serde(rename = "type")]
   pub part_type: PartType,
   #[serde(rename = "maxLength")]
-  pub max_length: i64,
+  pub max_length: Option<i64>,
   pub mask: Option<Mask>,
 }
 
@@ -915,6 +915,8 @@ pub enum Id {
   Password1,
   #[serde(rename = "0001Choice")]
   Choice0001,
+  #[serde(rename = "LOGIN1")]
+  Login1,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -969,6 +971,8 @@ pub enum Action {
   PcbFinishSetup,
   #[serde(rename = "PCB_FUND_NOW")]
   PcbFundNow,
+  #[serde(rename = "BLACKOUT")]
+  Blackout,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
