@@ -337,7 +337,7 @@ impl Client {
       // }
       Err(e) => {
         return Err(e);
-      }
+      },
     };
 
     let text = res.text().await?;
@@ -497,11 +497,11 @@ impl Client {
     match self.request_json(req).await {
       Ok(()) => {
         // TODO: possibly set state here
-      }
+      },
       Err(e) => {
         // TODO: possibly set state here
         return Err(e);
-      }
+      },
     };
 
     Ok(())
@@ -537,13 +537,15 @@ impl Client {
       pc_types::AuthLevel::SessionAuthenticated | pc_types::AuthLevel::UserRemembered => Ok(()),
       pc_types::AuthLevel::UserIdentified => Err(Error::AwaitingTwoFactorCode),
       pc_types::AuthLevel::None => Err(Error::LoginFailed),
-      _ => Err(Error::Other(
-        format!(
-          "unknown auth level state at end of auth(): {:?}",
-          self.auth_level
-        )
-        .into(),
-      )),
+      _ => {
+        Err(Error::Other(
+          format!(
+            "unknown auth level state at end of auth(): {:?}",
+            self.auth_level
+          )
+          .into(),
+        ))
+      },
     }
   }
 
@@ -681,10 +683,12 @@ impl Client {
     Ok(json)
   }
 
+  // classifications: can be: "none", "sector", "allocation"
   pub async fn holdings(
     &mut self,
     classifications: Option<&[&str]>,
     account_ids: Option<&[i64]>,
+    merge_accounts: bool,
   ) -> Result<pc_types::Holdings, Error> {
     let url = format!("{}{}", BASE_URL, HOLDINGS);
 
@@ -709,7 +713,10 @@ impl Client {
         )
         .into(),
       ),
-      ("consolidateMultipleAccounts", "true".into()),
+      (
+        "consolidateMultipleAccounts",
+        if merge_accounts { "true" } else { "false " }.into(),
+      ),
       (
         "userAccountIds",
         format!(
