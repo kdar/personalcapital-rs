@@ -103,15 +103,15 @@ pub struct ErrorDetails {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct AccountsSummary {
   #[serde(rename = "hasCredit")]
-  pub has_credit: bool,
+  pub has_credit: Option<bool>,
   #[serde(rename = "hasAggregated")]
-  pub has_aggregated: bool,
+  pub has_aggregated: Option<bool>,
   #[serde(rename = "hasCash")]
-  pub has_cash: bool,
+  pub has_cash: Option<bool>,
   #[serde(rename = "hasInvestment")]
-  pub has_investment: bool,
+  pub has_investment: Option<bool>,
   #[serde(rename = "hasOnUs")]
-  pub has_on_us: bool,
+  pub has_on_us: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -308,6 +308,8 @@ pub enum TransactionType {
   Debit,
   #[serde(rename = "Dividend Received")]
   DividendReceived,
+  #[serde(rename = "Account Fee")]
+  AccountFee,
   #[serde(rename = "MMF Rein")]
   MmfRein,
   #[serde(rename = "MMF Sweep")]
@@ -358,16 +360,16 @@ pub enum TransactionType {
   AdministrativeFee,
   #[serde(rename = "Direct Deposit")]
   DirectDeposit,
-  #[serde(rename = "!TRANSACTION_TYPE.REFUND!")]
+  #[serde(rename = "Refund")]
   Refund,
-  #[serde(rename = "!TRANSACTION_TYPE.PURCHASE!")]
-  Purchase,
-  #[serde(rename = "!TRANSACTION_TYPE.PAYMENT!")]
+  #[serde(rename = "Payment")]
   Payment,
-  #[serde(rename = "!TRANSACTION_TYPE.TRANSFER!")]
+  #[serde(rename = "Transfer")]
   Transfer,
-  #[serde(rename = "!TRANSACTION_TYPE.DEPOSITS_CREDITS!")]
-  DepositsCredits,
+  #[serde(rename = "Deposit Credits")]
+  DepositCredits,
+  #[serde(rename = "Interest")]
+  Interest,
   #[serde(rename = "Employee contribution")]
   EmployeeContribution,
   #[serde(rename = "Interest charge")]
@@ -378,6 +380,18 @@ pub enum TransactionType {
   Fee,
   #[serde(rename = "Withdrawal")]
   Withdrawal,
+  #[serde(rename = "Charges Fees")]
+  ChargesFees,
+  #[serde(rename = "Misc Income")]
+  MiscIncome,
+  #[serde(rename = "!REVERSAL.REVERSAL!")]
+  Reversal,
+  #[serde(rename = "Purchase")]
+  Purchase,
+  #[serde(rename = "Credit Adjustment")]
+  CreditAdjustment,
+  #[serde(rename = "Debit Adjustment")]
+  DebitAdjustment,
   #[serde(rename = "Other")]
   Other,
 }
@@ -774,6 +788,8 @@ pub enum AccountTypeNew {
   ESPP,
   #[serde(rename = "ESOP")]
   ESOP,
+  #[serde(rename = "CRYPTO_CURRENCY")]
+  CryptoCurrency,
 }
 
 impl Default for AccountTypeNew {
@@ -844,6 +860,8 @@ pub enum AccountType {
   Assets,
   #[serde(rename = "Loan")]
   Loan,
+  #[serde(rename = "Crypto Currency")]
+  CryptoCurrency,
 }
 
 impl Default for AccountType {
@@ -872,6 +890,8 @@ pub enum AccountTypeGroup {
   ESOP,
   #[serde(rename = "ESPP")]
   ESPP,
+  #[serde(rename = "CRYPTO_CURRENCY")]
+  CryptoCurrency,
 }
 
 impl Default for AccountTypeGroup {
@@ -917,6 +937,8 @@ pub enum Id {
   Choice0001,
   #[serde(rename = "LOGIN1")]
   Login1,
+  #[serde(rename = "OP_PASSWORD")]
+  OpPassword,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -973,6 +995,8 @@ pub enum Action {
   PcbFundNow,
   #[serde(rename = "BLACKOUT")]
   Blackout,
+  #[serde(rename = "MIGRATE_OAUTH")]
+  MigrateOauth,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -1005,6 +1029,8 @@ pub enum AggregationErrorType {
   CatchAll,
   #[serde(rename = "REGISTRATION_FAILED")]
   RegistrationFailed,
+  #[serde(rename = "OAUTH_CONNECTION_LINK_FAILURE")]
+  OauthConnectionLinkFailure,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
@@ -1158,6 +1184,8 @@ pub enum Exchange {
   Nyse,
   #[serde(rename = "NYSE Arca")]
   NyseArca,
+  #[serde(rename = "NYSE American")]
+  NyseAmerican,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
