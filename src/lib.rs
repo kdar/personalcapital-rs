@@ -38,7 +38,7 @@ const UPDATE_USER_TRANSACTIONS: &str = "/api/transaction/updateUserTransactions2
 const HISTORIES: &str = "/api/account/getHistories";
 
 lazy_static! {
-  static ref CSRF_RE: Regex = Regex::new(r"globals.csrf='([a-f0-9-]+)'").unwrap();
+  static ref CSRF_RE: Regex = Regex::new(r"csrf ?= ?'([a-f0-9-]+)'").unwrap();
 }
 
 pub type SyncError = Box<dyn StdError + Send + Sync>;
@@ -140,6 +140,7 @@ pub struct ClientBuilder {
   username: Option<String>,
   password: Option<String>,
   device_name: Option<String>,
+  debug_writer: Option<Box<dyn Write + Send>>,
 }
 
 impl ClientBuilder {
@@ -149,6 +150,7 @@ impl ClientBuilder {
       username: None,
       password: None,
       device_name: None,
+      debug_writer: None,
     }
   }
 
@@ -169,6 +171,11 @@ impl ClientBuilder {
 
   pub fn device_name<V: Into<String>>(&mut self, value: V) -> &mut Self {
     self.device_name = Some(value.into());
+    self
+  }
+
+  pub fn debug_writer(&mut self, writer: Box<dyn Write + Send>) -> &mut Self {
+    self.debug_writer = Some(writer);
     self
   }
 
@@ -238,6 +245,7 @@ impl ClientBuilder {
       password: self.password.take().unwrap(),
       device_name: self.device_name.take().unwrap(),
       last_server_change_id: -1,
+      debug_writer: self.debug_writer.take(),
     })
   }
 }
@@ -252,6 +260,7 @@ pub struct Client {
   password: String,
   device_name: String,
   last_server_change_id: i64,
+  debug_writer: Option<Box<dyn Write + Send>>,
 }
 
 impl Client {
@@ -325,6 +334,16 @@ impl Client {
   where
     T: serde::de::DeserializeOwned,
   {
+    if let Some(mut dw) = self.debug_writer.as_mut() {
+      write!(
+        &mut dw,
+        "request: {}\n{}\n",
+        req.url(),
+        String::from_utf8(req.body().clone().unwrap().as_bytes().unwrap().to_vec()).unwrap()
+      )
+      .unwrap();
+    }
+
     let res = match self.request(req).await {
       Ok(v) => v,
       // Err(Error::Reqwest(e)) => {
@@ -341,6 +360,11 @@ impl Client {
     };
 
     let text = res.text().await?;
+
+    if let Some(mut dw) = self.debug_writer.as_mut() {
+      write!(&mut dw, "response:\n{}\n\n", text).unwrap();
+    }
+
     // println!("\x1b[0;34m{}\x1b[0;0m", text);
     let json: pc_types::Response = serde_json::from_str(&text)?;
 
@@ -715,7 +739,7 @@ impl Client {
       ),
       (
         "consolidateMultipleAccounts",
-        if merge_accounts { "true" } else { "false " }.into(),
+        if merge_accounts { "true" } else { "false" }.into(),
       ),
       (
         "userAccountIds",

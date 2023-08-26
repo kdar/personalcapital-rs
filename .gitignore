@@ -5,3 +5,4 @@
 .envrc
 sort_test_input.json
 sort_test_output.json
+.vscode
